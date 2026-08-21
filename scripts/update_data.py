@@ -142,6 +142,7 @@ def main():
     new_payload = {
         "meta": {"품명": 품명s, "구분": 구분s, "부위": 부위s, "국가": 국가s, "yearBase": min_year},
         "flat": new_flat,
+        "updatedAt": now.isoformat(),
     }
 
     with open(DATA_PATH, "w", encoding="utf-8") as f:
