@@ -7,7 +7,6 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   html, body { margin: 0; padding: 0; background: #151312; }
   * { box-sizing: border-box; }
@@ -18,124 +17,87 @@
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
-
+<script>
 const { useState, useEffect, useMemo, useRef } = React;
-
 const COLORS = {
-  bg: "#151312", panel: "#1d1a19", panelBorder: "#2b2624", panelBorder2: "#332c29",
-  amber: "#d98b3f", amberSoft: "#e8b877", cream: "#f2ead9", mute: "#8f857a",
-  sage: "#6f9482", rust: "#c2695f", head: "#141211",
+  bg: "#151312",
+  panel: "#1d1a19",
+  panelBorder: "#2b2624",
+  panelBorder2: "#332c29",
+  amber: "#d98b3f",
+  amberSoft: "#e8b877",
+  cream: "#f2ead9",
+  mute: "#8f857a",
+  sage: "#6f9482",
+  rust: "#c2695f",
+  head: "#141211"
 };
 const SERIES_PALETTE = ["#d98b3f", "#5c8f7a", "#4f8fb8", "#b0a25c", "#a06a9c", "#c2695f", "#8b7bb0", "#5fa88a", "#e0985a", "#7ea0c4"];
-
-function n(v) { return Math.round(v).toLocaleString(); }
-function fmtShort(v) { return Math.abs(v) >= 10000 ? (v / 10000).toFixed(1) + "만" : Math.round(v).toLocaleString(); }
-function pct(v) { if (v === null) return "—"; const s = v > 0 ? "+" : ""; return `${s}${v.toFixed(1)}%`; }
-
-const DIM_LABEL = { country: "국가", part: "부위", year: "연도", month: "월" };
-const DIM_OPTIONS = [["country", "국가"], ["part", "부위"], ["year", "연도"], ["month", "월"]];
-
+function n(v) {
+  return Math.round(v).toLocaleString();
+}
+function fmtShort(v) {
+  return Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + "\uB9CC" : Math.round(v).toLocaleString();
+}
+function pct(v) {
+  if (v === null) return "\u2014";
+  const s = v > 0 ? "+" : "";
+  return `${s}${v.toFixed(1)}%`;
+}
+const DIM_LABEL = { country: "\uAD6D\uAC00", part: "\uBD80\uC704", year: "\uC5F0\uB3C4", month: "\uC6D4" };
+const DIM_OPTIONS = [["country", "\uAD6D\uAC00"], ["part", "\uBD80\uC704"], ["year", "\uC5F0\uB3C4"], ["month", "\uC6D4"]];
 function downloadXlsx(aoa, filename, sheetName) {
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName || "Sheet1");
   XLSX.writeFile(wb, filename);
 }
-
 function SvgLineChart({ categories, series, height = 260 }) {
   const width = 760;
   const manyLabels = categories.length > 16;
   const padding = { top: 16, right: 16, bottom: manyLabels ? 46 : 26, left: 46 };
   const innerW = width - padding.left - padding.right;
   const innerH = height - padding.top - padding.bottom;
-  const maxVal = Math.max(1, ...series.flatMap(s => s.data));
+  const maxVal = Math.max(1, ...series.flatMap((s) => s.data));
   const stepX = categories.length > 1 ? innerW / (categories.length - 1) : 0;
-  const yFor = (v) => padding.top + innerH - (v / maxVal) * innerH;
+  const yFor = (v) => padding.top + innerH - v / maxVal * innerH;
   const xFor = (i) => padding.left + i * stepX;
   const gridLines = 4;
   const labelEvery = manyLabels ? Math.ceil(categories.length / 14) : 1;
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height }} preserveAspectRatio="none">
-      {Array.from({ length: gridLines + 1 }).map((_, i) => {
-        const y = padding.top + (innerH / gridLines) * i;
-        const val = Math.round(maxVal - (maxVal / gridLines) * i);
-        return (
-          <g key={i}>
-            <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke={COLORS.panelBorder} strokeDasharray="3 3" />
-            <text x={padding.left - 6} y={y + 3} textAnchor="end" fontSize="9" fill={COLORS.mute}>{fmtShort(val)}</text>
-          </g>
-        );
-      })}
-      {categories.map((c, i) => (i % labelEvery === 0) && (
-        <text key={i} x={xFor(i)} y={height - 8} textAnchor="middle" fontSize="9" fill={COLORS.mute}>{c}</text>
-      ))}
-      {series.map((s) => {
-        const points = s.data.map((v, i) => `${xFor(i)},${yFor(v)}`).join(" ");
-        return (
-          <g key={s.name}>
-            <polyline points={points} fill="none" stroke={s.color} strokeWidth="2.2" />
-            {categories.length <= 40 && s.data.map((v, i) => <circle key={i} cx={xFor(i)} cy={yFor(v)} r={2.4} fill={s.color} />)}
-          </g>
-        );
-      })}
-    </svg>
-  );
+  return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${width} ${height}`, style: { width: "100%", height }, preserveAspectRatio: "none" }, Array.from({ length: gridLines + 1 }).map((_, i) => {
+    const y = padding.top + innerH / gridLines * i;
+    const val = Math.round(maxVal - maxVal / gridLines * i);
+    return /* @__PURE__ */ React.createElement("g", { key: i }, /* @__PURE__ */ React.createElement("line", { x1: padding.left, x2: width - padding.right, y1: y, y2: y, stroke: COLORS.panelBorder, strokeDasharray: "3 3" }), /* @__PURE__ */ React.createElement("text", { x: padding.left - 6, y: y + 3, textAnchor: "end", fontSize: "9", fill: COLORS.mute }, fmtShort(val)));
+  }), categories.map((c, i) => i % labelEvery === 0 && /* @__PURE__ */ React.createElement("text", { key: i, x: xFor(i), y: height - 8, textAnchor: "middle", fontSize: "9", fill: COLORS.mute }, c)), series.map((s) => {
+    const points = s.data.map((v, i) => `${xFor(i)},${yFor(v)}`).join(" ");
+    return /* @__PURE__ */ React.createElement("g", { key: s.name }, /* @__PURE__ */ React.createElement("polyline", { points, fill: "none", stroke: s.color, strokeWidth: "2.2" }), categories.length <= 40 && s.data.map((v, i) => /* @__PURE__ */ React.createElement("circle", { key: i, cx: xFor(i), cy: yFor(v), r: 2.4, fill: s.color })));
+  }));
 }
-
 function ChartLegend({ series }) {
   if (series.length < 2) return null;
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, paddingBottom: 10 }}>
-      {series.map(s => (
-        <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: COLORS.cream }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, display: "inline-block" }} />
-          {s.name}
-        </div>
-      ))}
-    </div>
-  );
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, paddingBottom: 10 } }, series.map((s) => /* @__PURE__ */ React.createElement("div", { key: s.name, style: { display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: COLORS.cream } }, /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: 3, background: s.color, display: "inline-block" } }), s.name)));
 }
-
 function BarRanking({ items }) {
-  const maxVal = Math.max(1, ...items.map(i => i.v));
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      {items.map((it, idx) => (
-        <div key={it.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 76, fontSize: 11.5, color: COLORS.cream, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.key}</div>
-          <div style={{ flex: 1, background: "#0f0d0c", borderRadius: 5, height: 20, position: "relative", overflow: "hidden" }}>
-            <div style={{ width: `${(it.v / maxVal) * 100}%`, height: "100%", background: SERIES_PALETTE[idx % SERIES_PALETTE.length], borderRadius: 5 }} />
-          </div>
-          <div style={{ width: 74, fontSize: 11.5, color: COLORS.amberSoft, fontFamily: "ui-monospace,monospace", flexShrink: 0 }}>{fmtShort(it.v)}</div>
-        </div>
-      ))}
-    </div>
-  );
+  const maxVal = Math.max(1, ...items.map((i) => i.v));
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, items.map((it, idx) => /* @__PURE__ */ React.createElement("div", { key: it.key, style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 76, fontSize: 11.5, color: COLORS.cream, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, it.key), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#0f0d0c", borderRadius: 5, height: 20, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${it.v / maxVal * 100}%`, height: "100%", background: SERIES_PALETTE[idx % SERIES_PALETTE.length], borderRadius: 5 } })), /* @__PURE__ */ React.createElement("div", { style: { width: 74, fontSize: 11.5, color: COLORS.amberSoft, fontFamily: "ui-monospace,monospace", flexShrink: 0 } }, fmtShort(it.v)))));
 }
-
 function App() {
   const [db, setDb] = useState(null);
   const [err, setErr] = useState(null);
-
   useEffect(() => {
-    fetch("./data/master_flat.json", { cache: "no-store" })
-      .then(r => { if (!r.ok) throw new Error("데이터 파일을 불러오지 못했습니다 (" + r.status + ")"); return r.json(); })
-      .then(setDb)
-      .catch(e => setErr(e.message));
+    fetch("./data/master_flat.json", { cache: "no-store" }).then((r) => {
+      if (!r.ok) throw new Error("\uB370\uC774\uD130 \uD30C\uC77C\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4 (" + r.status + ")");
+      return r.json();
+    }).then(setDb).catch((e) => setErr(e.message));
   }, []);
-
-  if (err) return <div style={{ background: COLORS.bg, color: COLORS.rust, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{err}</div>;
-  if (!db) return <div style={{ background: COLORS.bg, color: COLORS.mute, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>데이터를 불러오는 중...</div>;
-  return <Dashboard db={db} />;
+  if (err) return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, color: COLORS.rust, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, err);
+  if (!db) return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, color: COLORS.mute, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, "\uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uB294 \uC911...");
+  return /* @__PURE__ */ React.createElement(Dashboard, { db });
 }
-
 function Dashboard({ db }) {
   const META = db.meta;
   const YEAR_BASE = META.yearBase;
   const FLAT = db.flat;
-
   const ROWS = useMemo(() => {
     const rows = [];
     for (let idx = 0; idx < FLAT.length; idx += 7) {
@@ -143,117 +105,122 @@ function Dashboard({ db }) {
     }
     return rows;
   }, [FLAT, YEAR_BASE]);
-
   const { ALL_YM, YM_MIN, YM_MAX } = useMemo(() => {
-    const set = new Set();
-    ROWS.forEach(r => set.add(r[0] * 100 + r[1]));
+    const set = /* @__PURE__ */ new Set();
+    ROWS.forEach((r) => set.add(r[0] * 100 + r[1]));
     const all = [...set].sort((a, b) => a - b);
     return { ALL_YM: all, YM_MIN: all[0], YM_MAX: all[all.length - 1] };
   }, [ROWS]);
-  const ymLabel = (ym) => `${Math.floor(ym / 100)}년 ${ym % 100}월`;
-
+  const ymLabel = (ym) => `${Math.floor(ym / 100)}\uB144 ${ym % 100}\uC6D4`;
   function dimValue(r, dimKey) {
-    if (dimKey === "country") return META.국가[r[5]];
-    if (dimKey === "part") return META.부위[r[4]];
+    if (dimKey === "country") return META.\uAD6D\uAC00[r[5]];
+    if (dimKey === "part") return META.\uBD80\uC704[r[4]];
     if (dimKey === "year") return String(r[0]);
-    return `${r[1]}월`;
+    return `${r[1]}\uC6D4`;
   }
-  function monthNum(label) { return parseInt(label, 10); }
-
+  function monthNum(label) {
+    return parseInt(label, 10);
+  }
   const [mainTab, setMainTab] = useState("table");
   const [chartSub, setChartSub] = useState("group");
-
-  const [meat, setMeat] = useState(META.품명[2] || META.품명[0]);
-  const [ice, setIce] = useState("전체");
+  const [meat, setMeat] = useState(META.\uD488\uBA85[2] || META.\uD488\uBA85[0]);
+  const [ice, setIce] = useState("\uC804\uCCB4");
   const [countryFilter, setCountryFilter] = useState([]);
   const [partFilter, setPartFilter] = useState([]);
-
   const [ymStart, setYmStart] = useState(YM_MIN);
   const [ymEnd, setYmEnd] = useState(YM_MAX);
-  const onYmStart = (v) => { const val = +v; setYmStart(val); if (val > ymEnd) setYmEnd(val); };
-  const onYmEnd = (v) => { const val = +v; setYmEnd(val); if (val < ymStart) setYmStart(val); };
-
+  const onYmStart = (v) => {
+    const val = +v;
+    setYmStart(val);
+    if (val > ymEnd) setYmEnd(val);
+  };
+  const onYmEnd = (v) => {
+    const val = +v;
+    setYmEnd(val);
+    if (val < ymStart) setYmStart(val);
+  };
   const [rowDim, setRowDim] = useState("country");
   const [colDim, setColDim] = useState("year");
   const [displayMode, setDisplayMode] = useState("abs");
-
   const [groupBy, setGroupBy] = useState("year");
   const [sortDesc, setSortDesc] = useState(true);
-
   const [overlayDim, setOverlayDim] = useState("year");
   const [overlayXAxis, setOverlayXAxis] = useState("month");
   const [overlayYearCtx, setOverlayYearCtx] = useState(Math.floor(YM_MAX / 100));
   const [overlaySel, setOverlaySel] = useState({ dim: "year", list: [] });
-
-  const meatIdx = META.품명.indexOf(meat);
-
+  const meatIdx = META.\uD488\uBA85.indexOf(meat);
   const baseFilteredRows = useMemo(() => {
-    return ROWS.filter(r => {
+    return ROWS.filter((r) => {
       const [y, m, pIdx, iIdx, rIdx, nIdx] = r;
       if (pIdx !== meatIdx) return false;
-      if (ice !== "전체" && META.구분[iIdx] !== ice) return false;
-      if (countryFilter.length && !countryFilter.includes(META.국가[nIdx])) return false;
-      if (partFilter.length && !partFilter.includes(META.부위[rIdx])) return false;
+      if (ice !== "\uC804\uCCB4" && META.\uAD6C\uBD84[iIdx] !== ice) return false;
+      if (countryFilter.length && !countryFilter.includes(META.\uAD6D\uAC00[nIdx])) return false;
+      if (partFilter.length && !partFilter.includes(META.\uBD80\uC704[rIdx])) return false;
       const ym = y * 100 + m;
       if (ym < ymStart || ym > ymEnd) return false;
       return true;
     });
   }, [ROWS, meatIdx, ice, countryFilter, partFilter, ymStart, ymEnd]);
-
-  const years = useMemo(() => [...new Set(baseFilteredRows.map(r => r[0]))].sort((a, b) => a - b), [baseFilteredRows]);
+  const years = useMemo(() => [...new Set(baseFilteredRows.map((r) => r[0]))].sort((a, b) => a - b), [baseFilteredRows]);
   const grandTotalAll = useMemo(() => baseFilteredRows.reduce((s, r) => s + r[6], 0), [baseFilteredRows]);
-
-  const toggleFilter = (list, setList, value) => setList(list.includes(value) ? list.filter(x => x !== value) : [...list, value]);
-
+  const toggleFilter = (list, setList, value) => setList(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
   function sortLabels(dimKey, labels, totalsMap) {
     if (dimKey === "year") return [...labels].sort((a, b) => +a - +b);
     if (dimKey === "month") return [...labels].sort((a, b) => monthNum(a) - monthNum(b));
     return [...labels].sort((a, b) => (totalsMap[b] || 0) - (totalsMap[a] || 0));
   }
-
   const { rowLabels, colLabels, matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
     const rowTotalsRaw = {}, colTotalsRaw = {};
-    const matrix = {};
-    let grandTotal = 0;
-    baseFilteredRows.forEach(r => {
+    const matrix2 = {};
+    let grandTotal2 = 0;
+    baseFilteredRows.forEach((r) => {
       const rl = dimValue(r, rowDim);
       const cl = dimValue(r, colDim);
       const ton = r[6];
       rowTotalsRaw[rl] = (rowTotalsRaw[rl] || 0) + ton;
       colTotalsRaw[cl] = (colTotalsRaw[cl] || 0) + ton;
-      if (!matrix[rl]) matrix[rl] = {};
-      matrix[rl][cl] = (matrix[rl][cl] || 0) + ton;
-      grandTotal += ton;
+      if (!matrix2[rl]) matrix2[rl] = {};
+      matrix2[rl][cl] = (matrix2[rl][cl] || 0) + ton;
+      grandTotal2 += ton;
     });
-    const rowLabels = sortLabels(rowDim, Object.keys(rowTotalsRaw), rowTotalsRaw);
-    const colLabels = sortLabels(colDim, Object.keys(colTotalsRaw), colTotalsRaw);
-    return { rowLabels, colLabels, matrix, rowTotals: rowTotalsRaw, colTotals: colTotalsRaw, grandTotal };
+    const rowLabels2 = sortLabels(rowDim, Object.keys(rowTotalsRaw), rowTotalsRaw);
+    const colLabels2 = sortLabels(colDim, Object.keys(colTotalsRaw), colTotalsRaw);
+    return { rowLabels: rowLabels2, colLabels: colLabels2, matrix: matrix2, rowTotals: rowTotalsRaw, colTotals: colTotalsRaw, grandTotal: grandTotal2 };
   }, [baseFilteredRows, rowDim, colDim]);
-
   function cellDisplay(rowLabel, colLabel, colIdx) {
-    const val = matrix[rowLabel]?.[colLabel] || 0;
+    var _a, _b;
+    const val = ((_a = matrix[rowLabel]) == null ? void 0 : _a[colLabel]) || 0;
     if (displayMode === "abs") return { text: val ? n(val) : "-", raw: val };
     const prevCol = colLabels[colIdx - 1];
-    if (!prevCol) return { text: "—", raw: null };
-    const prevVal = matrix[rowLabel]?.[prevCol] || 0;
-    if (prevVal === 0) return { text: val > 0 ? "신규" : "—", raw: null };
-    const growth = ((val - prevVal) / prevVal) * 100;
+    if (!prevCol) return { text: "\u2014", raw: null };
+    const prevVal = ((_b = matrix[rowLabel]) == null ? void 0 : _b[prevCol]) || 0;
+    if (prevVal === 0) return { text: val > 0 ? "\uC2E0\uADDC" : "\u2014", raw: null };
+    const growth = (val - prevVal) / prevVal * 100;
     return { text: pct(growth), raw: growth };
   }
-
-  const onRowDimChange = (v) => { if (v === colDim) setColDim(rowDim); setRowDim(v); };
-  const onColDimChange = (v) => { if (v === rowDim) setRowDim(colDim); setColDim(v); };
-
+  const onRowDimChange = (v) => {
+    if (v === colDim) setColDim(rowDim);
+    setRowDim(v);
+  };
+  const onColDimChange = (v) => {
+    if (v === rowDim) setRowDim(colDim);
+    setColDim(v);
+  };
   function exportTableXlsx() {
-    const header = [DIM_LABEL[rowDim], ...colLabels, "총합계"];
-    const body = rowLabels.map(rl => [rl, ...colLabels.map(cl => Math.round((matrix[rl]?.[cl] || 0) * 100) / 100), Math.round(rowTotals[rl] * 100) / 100]);
-    const footer = ["총합계", ...colLabels.map(cl => Math.round((colTotals[cl] || 0) * 100) / 100), Math.round(grandTotal * 100) / 100];
-    downloadXlsx([header, ...body, footer], `${meat}_${DIM_LABEL[rowDim]}x${DIM_LABEL[colDim]}_검역중량.xlsx`, "피벗표");
+    const header = [DIM_LABEL[rowDim], ...colLabels, "\uCD1D\uD569\uACC4"];
+    const body = rowLabels.map((rl) => [rl, ...colLabels.map((cl) => {
+      var _a;
+      return Math.round((((_a = matrix[rl]) == null ? void 0 : _a[cl]) || 0) * 100) / 100;
+    }), Math.round(rowTotals[rl] * 100) / 100]);
+    const footer = ["\uCD1D\uD569\uACC4", ...colLabels.map((cl) => Math.round((colTotals[cl] || 0) * 100) / 100), Math.round(grandTotal * 100) / 100];
+    downloadXlsx([header, ...body, footer], `${meat}_${DIM_LABEL[rowDim]}x${DIM_LABEL[colDim]}_\uAC80\uC5ED\uC911\uB7C9.xlsx`, "\uD53C\uBC97\uD45C");
   }
-
   const grouped = useMemo(() => {
-    const map = new Map();
-    baseFilteredRows.forEach(r => { let key = dimValue(r, groupBy); map.set(key, (map.get(key) || 0) + r[6]); });
+    const map = /* @__PURE__ */ new Map();
+    baseFilteredRows.forEach((r) => {
+      let key = dimValue(r, groupBy);
+      map.set(key, (map.get(key) || 0) + r[6]);
+    });
     let arr = [...map.entries()].map(([key, v]) => ({ key, v }));
     if (groupBy === "year") arr.sort((a, b) => +a.key - +b.key);
     else if (groupBy === "month") arr.sort((a, b) => monthNum(a.key) - monthNum(b.key));
@@ -261,299 +228,158 @@ function Dashboard({ db }) {
     return arr;
   }, [baseFilteredRows, groupBy, sortDesc]);
   const isTimeGroup = groupBy === "year" || groupBy === "month";
-
   function exportGroupXlsx() {
-    const header = [DIM_LABEL[groupBy], "검역중량(톤)"];
-    const body = grouped.map(g => [g.key, Math.round(g.v * 100) / 100]);
-    downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[groupBy]}별_검역중량.xlsx`, "그룹비교");
+    const header = [DIM_LABEL[groupBy], "\uAC80\uC5ED\uC911\uB7C9(\uD1A4)"];
+    const body = grouped.map((g) => [g.key, Math.round(g.v * 100) / 100]);
+    downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[groupBy]}\uBCC4_\uAC80\uC5ED\uC911\uB7C9.xlsx`, "\uADF8\uB8F9\uBE44\uAD50");
   }
-
   const overlayCandidates = useMemo(() => {
     if (overlayDim === "year") return years.map(String);
     if (overlayDim === "country") {
-      const totals = {};
-      baseFilteredRows.forEach(r => { const k = META.국가[r[5]]; totals[k] = (totals[k] || 0) + r[6]; });
-      return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
+      const totals2 = {};
+      baseFilteredRows.forEach((r) => {
+        const k = META.\uAD6D\uAC00[r[5]];
+        totals2[k] = (totals2[k] || 0) + r[6];
+      });
+      return Object.keys(totals2).sort((a, b) => totals2[b] - totals2[a]);
     }
     const totals = {};
-    baseFilteredRows.forEach(r => { const k = META.부위[r[4]]; totals[k] = (totals[k] || 0) + r[6]; });
+    baseFilteredRows.forEach((r) => {
+      const k = META.\uBD80\uC704[r[4]];
+      totals[k] = (totals[k] || 0) + r[6];
+    });
     return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
   }, [overlayDim, baseFilteredRows, years]);
-
   const effectiveXAxis = overlayDim === "year" ? "month" : overlayXAxis;
-  const currentOverlayList = overlaySel.dim === overlayDim && overlaySel.list.length
-    ? overlaySel.list.filter(v => overlayCandidates.includes(v))
-    : overlayCandidates.slice(0, overlayDim === "year" ? Math.min(3, overlayCandidates.length) : 5);
-
+  const currentOverlayList = overlaySel.dim === overlayDim && overlaySel.list.length ? overlaySel.list.filter((v) => overlayCandidates.includes(v)) : overlayCandidates.slice(0, overlayDim === "year" ? Math.min(3, overlayCandidates.length) : 5);
   const toggleOverlay = (v) => {
-    const list = currentOverlayList.includes(v) ? currentOverlayList.filter(x => x !== v) : [...currentOverlayList, v];
+    const list = currentOverlayList.includes(v) ? currentOverlayList.filter((x) => x !== v) : [...currentOverlayList, v];
     setOverlaySel({ dim: overlayDim, list });
   };
   const selectAllOverlay = () => setOverlaySel({ dim: overlayDim, list: [...overlayCandidates] });
   const clearOverlay = () => setOverlaySel({ dim: overlayDim, list: [] });
-
-  const overlayXLabels = useMemo(() => effectiveXAxis === "month" ? Array.from({ length: 12 }, (_, i) => `${i + 1}월`) : years.map(String), [effectiveXAxis, years]);
-
+  const overlayXLabels = useMemo(() => effectiveXAxis === "month" ? Array.from({ length: 12 }, (_, i) => `${i + 1}\uC6D4`) : years.map(String), [effectiveXAxis, years]);
   const overlaySeries = useMemo(() => {
     let rowsForOverlay = baseFilteredRows;
-    if (overlayDim !== "year" && effectiveXAxis === "month") rowsForOverlay = rowsForOverlay.filter(r => r[0] === overlayYearCtx);
+    if (overlayDim !== "year" && effectiveXAxis === "month") rowsForOverlay = rowsForOverlay.filter((r) => r[0] === overlayYearCtx);
     return currentOverlayList.map((val, idx) => {
       const bucket = {};
-      rowsForOverlay.forEach(r => {
+      rowsForOverlay.forEach((r) => {
         const seriesVal = overlayDim === "year" ? String(r[0]) : dimValue(r, overlayDim);
         if (seriesVal !== val) return;
-        const xVal = effectiveXAxis === "month" ? `${r[1]}월` : String(r[0]);
+        const xVal = effectiveXAxis === "month" ? `${r[1]}\uC6D4` : String(r[0]);
         bucket[xVal] = (bucket[xVal] || 0) + r[6];
       });
-      return { name: val, color: SERIES_PALETTE[idx % SERIES_PALETTE.length], data: overlayXLabels.map(x => Math.round((bucket[x] || 0) * 10) / 10) };
+      return { name: val, color: SERIES_PALETTE[idx % SERIES_PALETTE.length], data: overlayXLabels.map((x) => Math.round((bucket[x] || 0) * 10) / 10) };
     });
   }, [baseFilteredRows, overlayDim, effectiveXAxis, currentOverlayList, overlayYearCtx, overlayXLabels]);
-
   function exportOverlayXlsx() {
-    const header = ["구분", ...currentOverlayList];
-    const body = overlayXLabels.map((x, i) => [x, ...overlaySeries.map(s => s.data[i] ?? 0)]);
-    downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[overlayDim]}겹쳐보기_검역중량.xlsx`, "겹쳐보기");
+    const header = ["\uAD6C\uBD84", ...currentOverlayList];
+    const body = overlayXLabels.map((x, i) => [x, ...overlaySeries.map((s) => {
+      var _a;
+      return (_a = s.data[i]) != null ? _a : 0;
+    })]);
+    downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[overlayDim]}\uACB9\uCCD0\uBCF4\uAE30_\uAC80\uC5ED\uC911\uB7C9.xlsx`, "\uACB9\uCCD0\uBCF4\uAE30");
   }
-
-  const groupSeries = useMemo(() => [{ name: DIM_LABEL[groupBy], color: COLORS.amber, data: grouped.map(g => g.v) }], [grouped, groupBy]);
-
-  return (
-    <div style={{ background: COLORS.bg, minHeight: "100vh", padding: "24px 16px 40px", color: COLORS.cream }}>
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 3 }}>
-          <span style={{ fontSize: 11.5, letterSpacing: "0.13em", color: COLORS.mute, fontWeight: 700 }}>2019 – 2026 수입축산물 검역중량</span>
-        </div>
-        <h1 style={{ fontSize: 23, fontWeight: 800, margin: "5px 0 16px", letterSpacing: "-0.01em" }}>{meat} 검역중량 (톤)</h1>
-
-        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-          {META.품명.map(p => (
-            <button key={p} onClick={() => setMeat(p)}
-              style={{ padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
-                border: `1px solid ${p === meat ? COLORS.amber : COLORS.panelBorder}`,
-                background: p === meat ? "rgba(217,139,63,0.14)" : COLORS.panel,
-                color: p === meat ? COLORS.amber : COLORS.mute }}>{p}</button>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-          <ChipGroup label="구분" options={["전체", "냉동", "냉장"]} value={ice} onChange={setIce} />
-          <HoverMultiPicker label="국가" options={META.국가} selected={countryFilter} onToggle={v => toggleFilter(countryFilter, setCountryFilter, v)} onSelectAll={() => setCountryFilter([...META.국가])} onClear={() => setCountryFilter([])} />
-          <HoverMultiPicker label="부위" options={META.부위.filter(p => p !== "-")} selected={partFilter} onToggle={v => toggleFilter(partFilter, setPartFilter, v)} onSelectAll={() => setPartFilter(META.부위.filter(p => p !== "-"))} onClear={() => setPartFilter([])} />
-        </div>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 14 }}>
-          <span style={{ fontSize: 11, color: COLORS.mute }}>기간</span>
-          <HoverAxisPicker label="시작" value={ymStart} onChange={onYmStart} options={ALL_YM.map(ym => [ym, ymLabel(ym)])} />
-          <span style={{ color: COLORS.mute }}>–</span>
-          <HoverAxisPicker label="종료" value={ymEnd} onChange={onYmEnd} options={ALL_YM.map(ym => [ym, ymLabel(ym)])} />
-          <button onClick={() => { setYmStart(YM_MIN); setYmEnd(YM_MAX); }}
-            style={{ fontSize: 11, color: COLORS.mute, background: "none", border: `1px solid ${COLORS.panelBorder}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer" }}>전체기간</button>
-        </div>
-
-        <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <div style={{ fontSize: 11, color: COLORS.mute }}>
-            {meat} · {ice}{countryFilter.length ? ` · 국가 ${countryFilter.length}개` : ""}{partFilter.length ? ` · 부위 ${partFilter.length}개` : ""} · {ymLabel(ymStart)}~{ymLabel(ymEnd)}
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.amber, fontFamily: "ui-monospace,monospace" }}>합계 {n(grandTotalAll)} 톤</div>
-        </div>
-
-        <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${COLORS.panelBorder}` }}>
-          <SheetTab active={mainTab === "table"} onClick={() => setMainTab("table")} label="표" />
-          <SheetTab active={mainTab === "chart"} onClick={() => setMainTab("chart")} label="차트" />
-        </div>
-
-        {mainTab === "table" && (
-          <React.Fragment>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
-              <HoverAxisPicker label="행" value={rowDim} onChange={onRowDimChange} options={DIM_OPTIONS} />
-              <HoverAxisPicker label="열" value={colDim} onChange={onColDimChange} options={DIM_OPTIONS} />
-              <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
-                <ToggleBtn active={displayMode === "abs"} onClick={() => setDisplayMode("abs")} label="실수치(톤)" />
-                <ToggleBtn active={displayMode === "yoy"} onClick={() => setDisplayMode("yoy")} label="전 열 대비 증감률" />
-                <button onClick={exportTableXlsx} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage }}>⬇ 엑셀 다운로드</button>
-              </div>
-            </div>
-            <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, overflow: "hidden" }}>
-              <div style={{ overflowX: "auto", maxHeight: 560, overflowY: "auto" }}>
-                <table style={{ borderCollapse: "collapse", fontSize: 12.5, width: "100%" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ ...thStyle, position: "sticky", left: 0, top: 0, zIndex: 3, background: COLORS.head, minWidth: 108 }}>{DIM_LABEL[rowDim]}</th>
-                      {colLabels.map(cl => <th key={cl} style={{ ...thStyle, position: "sticky", top: 0, zIndex: 2, background: COLORS.head, textAlign: "right", minWidth: 84 }}>{cl}</th>)}
-                      <th style={{ ...thStyle, position: "sticky", top: 0, right: 0, zIndex: 3, background: "#1a1613", textAlign: "right", minWidth: 96, color: COLORS.amberSoft }}>총합계</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rowLabels.map(rl => (
-                      <tr key={rl} style={{ borderTop: `1px solid ${COLORS.panelBorder}` }}>
-                        <td style={{ ...tdStyle, position: "sticky", left: 0, background: COLORS.panel, fontWeight: 700, zIndex: 1 }}>{rl}</td>
-                        {colLabels.map((cl, ci) => {
-                          const { text, raw } = cellDisplay(rl, cl, ci);
-                          const color = displayMode === "yoy" ? (raw === null ? COLORS.mute : raw > 0 ? COLORS.sage : raw < 0 ? COLORS.rust : COLORS.mute) : COLORS.cream;
-                          return <td key={cl} style={{ ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", color }}>{text}</td>;
-                        })}
-                        <td style={{ ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 700, color: COLORS.amberSoft, position: "sticky", right: 0, background: "#1a1613" }}>{n(rowTotals[rl])}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ borderTop: `2px solid ${COLORS.panelBorder2}` }}>
-                      <td style={{ ...tdStyle, position: "sticky", left: 0, background: "#1a1613", fontWeight: 800 }}>총합계</td>
-                      {colLabels.map(cl => <td key={cl} style={{ ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amberSoft }}>{n(colTotals[cl] || 0)}</td>)}
-                      <td style={{ ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amber, position: "sticky", right: 0, background: "#1a1613" }}>{n(grandTotal)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          </React.Fragment>
-        )}
-
-        {mainTab === "chart" && (
-          <React.Fragment>
-            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-              <SubTab active={chartSub === "group"} onClick={() => setChartSub("group")} label="그룹 비교" />
-              <SubTab active={chartSub === "overlay"} onClick={() => setChartSub("overlay")} label="겹쳐보기" />
-            </div>
-
-            {chartSub === "group" && (
-              <React.Fragment>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-                  <HoverAxisPicker label="기준" value={groupBy} onChange={setGroupBy} options={DIM_OPTIONS} />
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    {!isTimeGroup && (
-                      <button onClick={() => setSortDesc(!sortDesc)} style={{ fontSize: 11.5, color: COLORS.mute, background: "none", border: "none", cursor: "pointer" }}>⇅ {sortDesc ? "내림차순" : "오름차순"}</button>
-                    )}
-                    <button onClick={exportGroupXlsx} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage }}>⬇ 엑셀 다운로드</button>
-                  </div>
-                </div>
-                <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" }}>
-                  {isTimeGroup ? (
-                    <SvgLineChart categories={grouped.map(g => g.key)} series={groupSeries} height={280} />
-                  ) : (
-                    <BarRanking items={grouped} />
-                  )}
-                </div>
-              </React.Fragment>
-            )}
-
-            {chartSub === "overlay" && (
-              <React.Fragment>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 10 }}>
-                  <HoverAxisPicker label="비교기준" value={overlayDim} onChange={(v) => { setOverlayDim(v); setOverlaySel({ dim: v, list: [] }); }} options={[["year", "연도"], ["country", "국가"], ["part", "부위"]]} />
-                  {overlayDim !== "year" && <HoverAxisPicker label="X축" value={overlayXAxis} onChange={setOverlayXAxis} options={[["month", "월별"], ["year", "연도별"]]} />}
-                  {overlayDim !== "year" && effectiveXAxis === "month" && <HoverAxisPicker label="기준연도" value={overlayYearCtx} onChange={setOverlayYearCtx} options={years.map(y => [y, `${y}년`])} />}
-                  <button onClick={exportOverlayXlsx} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage, marginLeft: "auto" }}>⬇ 엑셀 다운로드</button>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, alignItems: "center" }}>
-                  <span style={{ fontSize: 11, color: COLORS.mute }}>겹쳐볼 {DIM_LABEL[overlayDim]} 선택:</span>
-                  <button onClick={selectAllOverlay} style={{ fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>전체 선택</button>
-                  <span style={{ color: COLORS.panelBorder2 }}>|</span>
-                  <button onClick={clearOverlay} style={{ fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>전체 해제</button>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                  {overlayCandidates.map(v => (
-                    <button key={v} onClick={() => toggleOverlay(v)}
-                      style={{ padding: "5px 11px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        border: `1px solid ${currentOverlayList.includes(v) ? COLORS.amber : COLORS.panelBorder}`,
-                        background: currentOverlayList.includes(v) ? "rgba(217,139,63,0.14)" : COLORS.panel,
-                        color: currentOverlayList.includes(v) ? COLORS.amber : COLORS.mute }}>{v}</button>
-                  ))}
-                </div>
-                <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" }}>
-                  <SvgLineChart categories={overlayXLabels} series={overlaySeries} height={300} />
-                  <ChartLegend series={overlaySeries} />
-                </div>
-              </React.Fragment>
-            )}
-          </React.Fragment>
-        )}
-
-        <p style={{ fontSize: 10.5, color: COLORS.mute, marginTop: 14, lineHeight: 1.6 }}>
-          자료: 식약처 수입식품정보마루 히스토리 + 공공데이터포털 실시간 API 병합. 단위 kg → 톤. 매일 자동 갱신됩니다.
-        </p>
-      </div>
-    </div>
-  );
+  const groupSeries = useMemo(() => [{ name: DIM_LABEL[groupBy], color: COLORS.amber, data: grouped.map((g) => g.v) }], [grouped, groupBy]);
+  return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, minHeight: "100vh", padding: "24px 16px 40px", color: COLORS.cream } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1120, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, marginBottom: 3 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11.5, letterSpacing: "0.13em", color: COLORS.mute, fontWeight: 700 } }, "2019 \u2013 2026 \uC218\uC785\uCD95\uC0B0\uBB3C \uAC80\uC5ED\uC911\uB7C9")), /* @__PURE__ */ React.createElement("h1", { style: { fontSize: 23, fontWeight: 800, margin: "5px 0 16px", letterSpacing: "-0.01em" } }, meat, " \uAC80\uC5ED\uC911\uB7C9 (\uD1A4)"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" } }, META.\uD488\uBA85.map((p) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: p,
+      onClick: () => setMeat(p),
+      style: {
+        padding: "7px 14px",
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: "pointer",
+        border: `1px solid ${p === meat ? COLORS.amber : COLORS.panelBorder}`,
+        background: p === meat ? "rgba(217,139,63,0.14)" : COLORS.panel,
+        color: p === meat ? COLORS.amber : COLORS.mute
+      }
+    },
+    p
+  ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement(ChipGroup, { label: "\uAD6C\uBD84", options: ["\uC804\uCCB4", "\uB0C9\uB3D9", "\uB0C9\uC7A5"], value: ice, onChange: setIce }), /* @__PURE__ */ React.createElement(HoverMultiPicker, { label: "\uAD6D\uAC00", options: META.\uAD6D\uAC00, selected: countryFilter, onToggle: (v) => toggleFilter(countryFilter, setCountryFilter, v), onSelectAll: () => setCountryFilter([...META.\uAD6D\uAC00]), onClear: () => setCountryFilter([]) }), /* @__PURE__ */ React.createElement(HoverMultiPicker, { label: "\uBD80\uC704", options: META.\uBD80\uC704.filter((p) => p !== "-"), selected: partFilter, onToggle: (v) => toggleFilter(partFilter, setPartFilter, v), onSelectAll: () => setPartFilter(META.\uBD80\uC704.filter((p) => p !== "-")), onClear: () => setPartFilter([]) })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 14 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, "\uAE30\uAC04"), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC2DC\uC791", value: ymStart, onChange: onYmStart, options: ALL_YM.map((ym) => [ym, ymLabel(ym)]) }), /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.mute } }, "\u2013"), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC885\uB8CC", value: ymEnd, onChange: onYmEnd, options: ALL_YM.map((ym) => [ym, ymLabel(ym)]) }), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => {
+        setYmStart(YM_MIN);
+        setYmEnd(YM_MAX);
+      },
+      style: { fontSize: 11, color: COLORS.mute, background: "none", border: `1px solid ${COLORS.panelBorder}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer" }
+    },
+    "\uC804\uCCB4\uAE30\uAC04"
+  )), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: COLORS.mute } }, meat, " \xB7 ", ice, countryFilter.length ? ` \xB7 \uAD6D\uAC00 ${countryFilter.length}\uAC1C` : "", partFilter.length ? ` \xB7 \uBD80\uC704 ${partFilter.length}\uAC1C` : "", " \xB7 ", ymLabel(ymStart), "~", ymLabel(ymEnd)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 800, color: COLORS.amber, fontFamily: "ui-monospace,monospace" } }, "\uD569\uACC4 ", n(grandTotalAll), " \uD1A4")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement(SheetTab, { active: mainTab === "table", onClick: () => setMainTab("table"), label: "\uD45C" }), /* @__PURE__ */ React.createElement(SheetTab, { active: mainTab === "chart", onClick: () => setMainTab("chart"), label: "\uCC28\uD2B8" })), mainTab === "table" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uD589", value: rowDim, onChange: onRowDimChange, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC5F4", value: colDim, onChange: onColDimChange, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(ToggleBtn, { active: displayMode === "abs", onClick: () => setDisplayMode("abs"), label: "\uC2E4\uC218\uCE58(\uD1A4)" }), /* @__PURE__ */ React.createElement(ToggleBtn, { active: displayMode === "yoy", onClick: () => setDisplayMode("yoy"), label: "\uC804 \uC5F4 \uB300\uBE44 \uC99D\uAC10\uB960" }), /* @__PURE__ */ React.createElement("button", { onClick: exportTableXlsx, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC"))), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", maxHeight: 560, overflowY: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { borderCollapse: "collapse", fontSize: 12.5, width: "100%" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { ...thStyle, position: "sticky", left: 0, top: 0, zIndex: 3, background: COLORS.head, minWidth: 108 } }, DIM_LABEL[rowDim]), colLabels.map((cl) => /* @__PURE__ */ React.createElement("th", { key: cl, style: { ...thStyle, position: "sticky", top: 0, zIndex: 2, background: COLORS.head, textAlign: "right", minWidth: 84 } }, cl)), /* @__PURE__ */ React.createElement("th", { style: { ...thStyle, position: "sticky", top: 0, right: 0, zIndex: 3, background: "#1a1613", textAlign: "right", minWidth: 96, color: COLORS.amberSoft } }, "\uCD1D\uD569\uACC4"))), /* @__PURE__ */ React.createElement("tbody", null, rowLabels.map((rl) => /* @__PURE__ */ React.createElement("tr", { key: rl, style: { borderTop: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, position: "sticky", left: 0, background: COLORS.panel, fontWeight: 700, zIndex: 1 } }, rl), colLabels.map((cl, ci) => {
+    const { text, raw } = cellDisplay(rl, cl, ci);
+    const color = displayMode === "yoy" ? raw === null ? COLORS.mute : raw > 0 ? COLORS.sage : raw < 0 ? COLORS.rust : COLORS.mute : COLORS.cream;
+    return /* @__PURE__ */ React.createElement("td", { key: cl, style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", color } }, text);
+  }), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 700, color: COLORS.amberSoft, position: "sticky", right: 0, background: "#1a1613" } }, n(rowTotals[rl]))))), /* @__PURE__ */ React.createElement("tfoot", null, /* @__PURE__ */ React.createElement("tr", { style: { borderTop: `2px solid ${COLORS.panelBorder2}` } }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, position: "sticky", left: 0, background: "#1a1613", fontWeight: 800 } }, "\uCD1D\uD569\uACC4"), colLabels.map((cl) => /* @__PURE__ */ React.createElement("td", { key: cl, style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amberSoft } }, n(colTotals[cl] || 0))), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amber, position: "sticky", right: 0, background: "#1a1613" } }, n(grandTotal)))))))), mainTab === "chart" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SubTab, { active: chartSub === "group", onClick: () => setChartSub("group"), label: "\uADF8\uB8F9 \uBE44\uAD50" }), /* @__PURE__ */ React.createElement(SubTab, { active: chartSub === "overlay", onClick: () => setChartSub("overlay"), label: "\uACB9\uCCD0\uBCF4\uAE30" })), chartSub === "group" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uAE30\uC900", value: groupBy, onChange: setGroupBy, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } }, !isTimeGroup && /* @__PURE__ */ React.createElement("button", { onClick: () => setSortDesc(!sortDesc), style: { fontSize: 11.5, color: COLORS.mute, background: "none", border: "none", cursor: "pointer" } }, "\u21C5 ", sortDesc ? "\uB0B4\uB9BC\uCC28\uC21C" : "\uC624\uB984\uCC28\uC21C"), /* @__PURE__ */ React.createElement("button", { onClick: exportGroupXlsx, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC"))), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" } }, isTimeGroup ? /* @__PURE__ */ React.createElement(SvgLineChart, { categories: grouped.map((g) => g.key), series: groupSeries, height: 280 }) : /* @__PURE__ */ React.createElement(BarRanking, { items: grouped }))), chartSub === "overlay" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uBE44\uAD50\uAE30\uC900", value: overlayDim, onChange: (v) => {
+    setOverlayDim(v);
+    setOverlaySel({ dim: v, list: [] });
+  }, options: [["year", "\uC5F0\uB3C4"], ["country", "\uAD6D\uAC00"], ["part", "\uBD80\uC704"]] }), overlayDim !== "year" && /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "X\uCD95", value: overlayXAxis, onChange: setOverlayXAxis, options: [["month", "\uC6D4\uBCC4"], ["year", "\uC5F0\uB3C4\uBCC4"]] }), overlayDim !== "year" && effectiveXAxis === "month" && /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uAE30\uC900\uC5F0\uB3C4", value: overlayYearCtx, onChange: setOverlayYearCtx, options: years.map((y) => [y, `${y}\uB144`]) }), /* @__PURE__ */ React.createElement("button", { onClick: exportOverlayXlsx, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage, marginLeft: "auto" } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, "\uACB9\uCCD0\uBCFC ", DIM_LABEL[overlayDim], " \uC120\uD0DD:"), /* @__PURE__ */ React.createElement("button", { onClick: selectAllOverlay, style: { fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uC120\uD0DD"), /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.panelBorder2 } }, "|"), /* @__PURE__ */ React.createElement("button", { onClick: clearOverlay, style: { fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uD574\uC81C")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 } }, overlayCandidates.map((v) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: v,
+      onClick: () => toggleOverlay(v),
+      style: {
+        padding: "5px 11px",
+        borderRadius: 7,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        border: `1px solid ${currentOverlayList.includes(v) ? COLORS.amber : COLORS.panelBorder}`,
+        background: currentOverlayList.includes(v) ? "rgba(217,139,63,0.14)" : COLORS.panel,
+        color: currentOverlayList.includes(v) ? COLORS.amber : COLORS.mute
+      }
+    },
+    v
+  ))), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" } }, /* @__PURE__ */ React.createElement(SvgLineChart, { categories: overlayXLabels, series: overlaySeries, height: 300 }), /* @__PURE__ */ React.createElement(ChartLegend, { series: overlaySeries })))), /* @__PURE__ */ React.createElement("p", { style: { fontSize: 10.5, color: COLORS.mute, marginTop: 14, lineHeight: 1.6 } }, "\uC790\uB8CC: \uC2DD\uC57D\uCC98 \uC218\uC785\uC2DD\uD488\uC815\uBCF4\uB9C8\uB8E8 \uD788\uC2A4\uD1A0\uB9AC + \uACF5\uACF5\uB370\uC774\uD130\uD3EC\uD138 \uC2E4\uC2DC\uAC04 API \uBCD1\uD569. \uB2E8\uC704 kg \u2192 \uD1A4. \uB9E4\uC77C \uC790\uB3D9 \uAC31\uC2E0\uB429\uB2C8\uB2E4.")));
 }
-
 const thStyle = { textAlign: "left", padding: "8px 10px", fontSize: 10.5, color: "#8f857a", fontWeight: 700, borderBottom: "1px solid #2b2624" };
 const tdStyle = { padding: "6px 10px", color: "#f2ead9" };
-
 function SheetTab({ active, onClick, label }) {
-  return <button onClick={onClick} style={{ padding: "9px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: active ? `2px solid ${COLORS.amber}` : "2px solid transparent", color: active ? COLORS.amber : COLORS.mute, marginBottom: -1 }}>{label}</button>;
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "9px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: active ? `2px solid ${COLORS.amber}` : "2px solid transparent", color: active ? COLORS.amber : COLORS.mute, marginBottom: -1 } }, label);
 }
 function SubTab({ active, onClick, label }) {
-  return <button onClick={onClick} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${active ? COLORS.amber : COLORS.panelBorder}`, background: active ? "rgba(217,139,63,0.14)" : COLORS.panel, color: active ? COLORS.amber : COLORS.mute }}>{label}</button>;
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${active ? COLORS.amber : COLORS.panelBorder}`, background: active ? "rgba(217,139,63,0.14)" : COLORS.panel, color: active ? COLORS.amber : COLORS.mute } }, label);
 }
 function ToggleBtn({ active, onClick, label }) {
-  return <button onClick={onClick} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${active ? COLORS.amber : COLORS.panelBorder}`, background: active ? "rgba(217,139,63,0.14)" : COLORS.panel, color: active ? COLORS.amber : COLORS.mute }}>{label}</button>;
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${active ? COLORS.amber : COLORS.panelBorder}`, background: active ? "rgba(217,139,63,0.14)" : COLORS.panel, color: active ? COLORS.amber : COLORS.mute } }, label);
 }
 function ChipGroup({ label, options, value, onChange }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 8px" }}>
-      <span style={{ fontSize: 11, color: COLORS.mute, paddingLeft: 4 }}>{label}</span>
-      {options.map(o => <button key={o} onClick={() => onChange(o)} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "none", background: o === value ? COLORS.amber : "transparent", color: o === value ? "#1a1512" : COLORS.mute }}>{o}</button>)}
-    </div>
-  );
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute, paddingLeft: 4 } }, label), options.map((o) => /* @__PURE__ */ React.createElement("button", { key: o, onClick: () => onChange(o), style: { padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "none", background: o === value ? COLORS.amber : "transparent", color: o === value ? "#1a1512" : COLORS.mute } }, o)));
 }
 function HoverAxisPicker({ label, value, onChange, options }) {
   const [open, setOpen] = useState(false);
   const timer = useRef(null);
-  const enter = () => { if (timer.current) clearTimeout(timer.current); setOpen(true); };
-  const leave = () => { timer.current = setTimeout(() => setOpen(false), 150); };
+  const enter = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    timer.current = setTimeout(() => setOpen(false), 150);
+  };
   const found = options.find(([v]) => v === value);
   const currentLabel = found ? found[1] : value;
-  return (
-    <div onMouseEnter={enter} onMouseLeave={leave} style={{ position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 10px" }}>
-        <span style={{ fontSize: 11, color: COLORS.mute }}>{label}</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: COLORS.amber }}>{currentLabel}</span>
-        <span style={{ fontSize: 10, color: COLORS.mute }}>▾</span>
-      </div>
-      {open && (
-        <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 6, minWidth: 130, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
-          {options.map(([v, l]) => (
-            <button key={v} onClick={() => { onChange(v); setOpen(false); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 10px", borderRadius: 6, fontSize: 12.5, cursor: "pointer", border: "none", background: v === value ? "rgba(217,139,63,0.18)" : "transparent", color: v === value ? COLORS.amberSoft : COLORS.cream, whiteSpace: "nowrap" }}>{l}</button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return /* @__PURE__ */ React.createElement("div", { onMouseEnter: enter, onMouseLeave: leave, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, fontWeight: 700, color: COLORS.amber } }, currentLabel), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: COLORS.mute } }, "\u25BE")), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 6, minWidth: 130, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" } }, options.map(([v, l]) => /* @__PURE__ */ React.createElement("button", { key: v, onClick: () => {
+    onChange(v);
+    setOpen(false);
+  }, style: { display: "block", width: "100%", textAlign: "left", padding: "6px 10px", borderRadius: 6, fontSize: 12.5, cursor: "pointer", border: "none", background: v === value ? "rgba(217,139,63,0.18)" : "transparent", color: v === value ? COLORS.amberSoft : COLORS.cream, whiteSpace: "nowrap" } }, l))));
 }
 function HoverMultiPicker({ label, options, selected, onToggle, onSelectAll, onClear }) {
   const [open, setOpen] = useState(false);
   const timer = useRef(null);
-  const enter = () => { if (timer.current) clearTimeout(timer.current); setOpen(true); };
-  const leave = () => { timer.current = setTimeout(() => setOpen(false), 150); };
-  return (
-    <div onMouseEnter={enter} onMouseLeave={leave} style={{ position: "relative" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${selected.length ? COLORS.amber : COLORS.panelBorder}`, borderRadius: 8, padding: "6px 12px", color: selected.length ? COLORS.amber : COLORS.mute, fontSize: 12.5, fontWeight: 600 }}>
-        {label} {selected.length ? `(${selected.length})` : "전체"} <span style={{ fontSize: 10 }}>▾</span>
-      </div>
-      {open && (
-        <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 10, width: 240, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: COLORS.mute }}>{options.length}개 옵션</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={onSelectAll} style={{ fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>전체 선택</button>
-              <button onClick={onClear} style={{ fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>초기화</button>
-            </div>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-            {options.map(o => (
-              <button key={o} onClick={() => onToggle(o)} style={{ padding: "4px 9px", borderRadius: 6, fontSize: 11.5, cursor: "pointer", border: `1px solid ${selected.includes(o) ? COLORS.amber : COLORS.panelBorder2}`, background: selected.includes(o) ? "rgba(217,139,63,0.18)" : "transparent", color: selected.includes(o) ? COLORS.amberSoft : COLORS.mute }}>{o}</button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const enter = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    timer.current = setTimeout(() => setOpen(false), 150);
+  };
+  return /* @__PURE__ */ React.createElement("div", { onMouseEnter: enter, onMouseLeave: leave, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${selected.length ? COLORS.amber : COLORS.panelBorder}`, borderRadius: 8, padding: "6px 12px", color: selected.length ? COLORS.amber : COLORS.mute, fontSize: 12.5, fontWeight: 600 } }, label, " ", selected.length ? `(${selected.length})` : "\uC804\uCCB4", " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, "\u25BE")), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 10, width: 240, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, options.length, "\uAC1C \uC635\uC158"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: onSelectAll, style: { fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uC120\uD0DD"), /* @__PURE__ */ React.createElement("button", { onClick: onClear, style: { fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uCD08\uAE30\uD654"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5 } }, options.map((o) => /* @__PURE__ */ React.createElement("button", { key: o, onClick: () => onToggle(o), style: { padding: "4px 9px", borderRadius: 6, fontSize: 11.5, cursor: "pointer", border: `1px solid ${selected.includes(o) ? COLORS.amber : COLORS.panelBorder2}`, background: selected.includes(o) ? "rgba(217,139,63,0.18)" : "transparent", color: selected.includes(o) ? COLORS.amberSoft : COLORS.mute } }, o)))));
 }
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+root.render(/* @__PURE__ */ React.createElement(App, null));
 
 </script>
 </body>
