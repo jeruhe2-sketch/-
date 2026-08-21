@@ -6,6 +6,16 @@
 <title>통합 대시보드</title>
 <meta name="description" content="수입검역 현황과 창고 재고 현황을 한 화면에서 확인하는 통합 대시보드" />
 
+<meta property="og:type" content="website" />
+<meta property="og:title" content="통합 대시보드" />
+<meta property="og:description" content="수입검역 현황과 창고 재고 현황을 한 화면에서 확인하는 통합 대시보드. 매일 자동 갱신됩니다." />
+<meta property="og:url" content="https://jeruhe2-sketch.github.io/-/" />
+<meta property="og:locale" content="ko_KR" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="통합 대시보드" />
+<meta name="twitter:description" content="수입검역 현황과 창고 재고 현황을 한 화면에서 확인, 매일 자동 갱신" />
+
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -16,6 +26,20 @@
   ::-webkit-scrollbar { height: 8px; width: 8px; }
   ::-webkit-scrollbar-thumb { background: #332c29; border-radius: 4px; }
   input::placeholder { color: #8f857a; }
+
+  /* 모바일: 왼쪽 세로 배너 -> 상단 가로 얇은 바 */
+  @media (max-width: 640px) {
+    .app-shell { flex-direction: column !important; }
+    .app-sidebar {
+      width: 100% !important; height: auto !important; position: static !important;
+      padding: 10px 12px !important; border-right: none !important;
+      border-bottom: 1px solid #2b2624 !important; overflow-y: visible !important;
+    }
+    .app-sidebar-title { display: none !important; }
+    .app-sidebar-subtitle { display: none !important; }
+    .app-sidebar-nav { display: flex !important; gap: 6px !important; overflow-x: auto !important; }
+    .app-nav-item { width: auto !important; margin-bottom: 0 !important; flex-shrink: 0 !important; padding: 8px 12px !important; }
+  }
 </style>
 </head>
 <body>
@@ -777,7 +801,7 @@ function ShellApp() {
     setView(v);
     window.location.hash = v;
   };
-  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", minHeight: "100vh", background: "#151312" } }, /* @__PURE__ */ React.createElement("div", { style: {
+  return /* @__PURE__ */ React.createElement("div", { className: "app-shell", style: { display: "flex", minHeight: "100vh", background: "#151312" } }, /* @__PURE__ */ React.createElement("div", { className: "app-sidebar", style: {
     width: 210,
     flexShrink: 0,
     background: "#141110",
@@ -787,7 +811,7 @@ function ShellApp() {
     top: 0,
     height: "100vh",
     overflowY: "auto"
-  } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 800, color: "#f2ead9", marginBottom: 2, letterSpacing: "-0.01em" } }, "\u{1F3E2} \uD1B5\uD569 \uB300\uC2DC\uBCF4\uB4DC"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#8f857a", marginBottom: 20 } }, "\uD68C\uC0AC \uB0B4\uBD80 \uD1B5\uD569 \uC870\uD68C"), /* @__PURE__ */ React.createElement(
+  } }, /* @__PURE__ */ React.createElement("div", { className: "app-sidebar-title", style: { fontSize: 13, fontWeight: 800, color: "#f2ead9", marginBottom: 2, letterSpacing: "-0.01em" } }, "\u{1F3E2} \uD1B5\uD569 \uB300\uC2DC\uBCF4\uB4DC"), /* @__PURE__ */ React.createElement("div", { className: "app-sidebar-subtitle", style: { fontSize: 10, color: "#8f857a", marginBottom: 20 } }, "\uD68C\uC0AC \uB0B4\uBD80 \uD1B5\uD569 \uC870\uD68C"), /* @__PURE__ */ React.createElement("div", { className: "app-sidebar-nav" }, /* @__PURE__ */ React.createElement(
     NavItem,
     {
       active: view === "quarantine",
@@ -803,10 +827,10 @@ function ShellApp() {
       icon: "\u{1F3ED}",
       label: "\uC885\uD569\uCC3D\uACE0\uD604\uD669"
     }
-  )), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, view === "quarantine" && /* @__PURE__ */ React.createElement(QuarantineApp, null), view === "warehouse" && /* @__PURE__ */ React.createElement(WarehouseDashboardApp, null)));
+  ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, view === "quarantine" && /* @__PURE__ */ React.createElement(QuarantineApp, null), view === "warehouse" && /* @__PURE__ */ React.createElement(WarehouseDashboardApp, null)));
 }
 function NavItem({ active, onClick, icon, label }) {
-  return /* @__PURE__ */ React.createElement("button", { onClick, style: {
+  return /* @__PURE__ */ React.createElement("button", { className: "app-nav-item", onClick, style: {
     display: "flex",
     alignItems: "center",
     gap: 9,
@@ -819,6 +843,7 @@ function NavItem({ active, onClick, icon, label }) {
     border: "none",
     fontSize: 13,
     fontWeight: 700,
+    whiteSpace: "nowrap",
     background: active ? "rgba(217,139,63,0.16)" : "transparent",
     color: active ? "#d98b3f" : "#8f857a"
   } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, icon), " ", label);
