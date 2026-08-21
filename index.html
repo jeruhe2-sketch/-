@@ -6,9 +6,6 @@
 <title>수입축산물 검역중량 대시보드</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/react-is@18/umd/react-is.production.min.js"></script>
-<script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
-<script src="https://unpkg.com/recharts@2/umd/Recharts.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
@@ -24,7 +21,6 @@
 <script type="text/babel" data-presets="react">
 
 const { useState, useEffect, useMemo, useRef } = React;
-const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } = Recharts;
 
 const COLORS = {
   bg: "#151312", panel: "#1d1a19", panelBorder: "#2b2624", panelBorder2: "#332c29",
@@ -47,6 +43,78 @@ function downloadXlsx(aoa, filename, sheetName) {
   XLSX.writeFile(wb, filename);
 }
 
+function SvgLineChart({ categories, series, height = 260 }) {
+  const width = 760;
+  const manyLabels = categories.length > 16;
+  const padding = { top: 16, right: 16, bottom: manyLabels ? 46 : 26, left: 46 };
+  const innerW = width - padding.left - padding.right;
+  const innerH = height - padding.top - padding.bottom;
+  const maxVal = Math.max(1, ...series.flatMap(s => s.data));
+  const stepX = categories.length > 1 ? innerW / (categories.length - 1) : 0;
+  const yFor = (v) => padding.top + innerH - (v / maxVal) * innerH;
+  const xFor = (i) => padding.left + i * stepX;
+  const gridLines = 4;
+  const labelEvery = manyLabels ? Math.ceil(categories.length / 14) : 1;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height }} preserveAspectRatio="none">
+      {Array.from({ length: gridLines + 1 }).map((_, i) => {
+        const y = padding.top + (innerH / gridLines) * i;
+        const val = Math.round(maxVal - (maxVal / gridLines) * i);
+        return (
+          <g key={i}>
+            <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke={COLORS.panelBorder} strokeDasharray="3 3" />
+            <text x={padding.left - 6} y={y + 3} textAnchor="end" fontSize="9" fill={COLORS.mute}>{fmtShort(val)}</text>
+          </g>
+        );
+      })}
+      {categories.map((c, i) => (i % labelEvery === 0) && (
+        <text key={i} x={xFor(i)} y={height - 8} textAnchor="middle" fontSize="9" fill={COLORS.mute}>{c}</text>
+      ))}
+      {series.map((s) => {
+        const points = s.data.map((v, i) => `${xFor(i)},${yFor(v)}`).join(" ");
+        return (
+          <g key={s.name}>
+            <polyline points={points} fill="none" stroke={s.color} strokeWidth="2.2" />
+            {categories.length <= 40 && s.data.map((v, i) => <circle key={i} cx={xFor(i)} cy={yFor(v)} r={2.4} fill={s.color} />)}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ChartLegend({ series }) {
+  if (series.length < 2) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, paddingBottom: 10 }}>
+      {series.map(s => (
+        <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: COLORS.cream }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, display: "inline-block" }} />
+          {s.name}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BarRanking({ items }) {
+  const maxVal = Math.max(1, ...items.map(i => i.v));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      {items.map((it, idx) => (
+        <div key={it.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 76, fontSize: 11.5, color: COLORS.cream, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.key}</div>
+          <div style={{ flex: 1, background: "#0f0d0c", borderRadius: 5, height: 20, position: "relative", overflow: "hidden" }}>
+            <div style={{ width: `${(it.v / maxVal) * 100}%`, height: "100%", background: SERIES_PALETTE[idx % SERIES_PALETTE.length], borderRadius: 5 }} />
+          </div>
+          <div style={{ width: 74, fontSize: 11.5, color: COLORS.amberSoft, fontFamily: "ui-monospace,monospace", flexShrink: 0 }}>{fmtShort(it.v)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function App() {
   const [db, setDb] = useState(null);
   const [err, setErr] = useState(null);
@@ -58,12 +126,8 @@ function App() {
       .catch(e => setErr(e.message));
   }, []);
 
-  if (err) {
-    return <div style={{ background: COLORS.bg, color: COLORS.rust, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{err}</div>;
-  }
-  if (!db) {
-    return <div style={{ background: COLORS.bg, color: COLORS.mute, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>데이터를 불러오는 중...</div>;
-  }
+  if (err) return <div style={{ background: COLORS.bg, color: COLORS.rust, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{err}</div>;
+  if (!db) return <div style={{ background: COLORS.bg, color: COLORS.mute, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>데이터를 불러오는 중...</div>;
   return <Dashboard db={db} />;
 }
 
@@ -228,12 +292,12 @@ function Dashboard({ db }) {
   const selectAllOverlay = () => setOverlaySel({ dim: overlayDim, list: [...overlayCandidates] });
   const clearOverlay = () => setOverlaySel({ dim: overlayDim, list: [] });
 
-  const overlayData = useMemo(() => {
-    const xLabels = effectiveXAxis === "month" ? Array.from({ length: 12 }, (_, i) => `${i + 1}월`) : years.map(String);
-    const base = xLabels.map(x => ({ x }));
+  const overlayXLabels = useMemo(() => effectiveXAxis === "month" ? Array.from({ length: 12 }, (_, i) => `${i + 1}월`) : years.map(String), [effectiveXAxis, years]);
+
+  const overlaySeries = useMemo(() => {
     let rowsForOverlay = baseFilteredRows;
     if (overlayDim !== "year" && effectiveXAxis === "month") rowsForOverlay = rowsForOverlay.filter(r => r[0] === overlayYearCtx);
-    currentOverlayList.forEach(val => {
+    return currentOverlayList.map((val, idx) => {
       const bucket = {};
       rowsForOverlay.forEach(r => {
         const seriesVal = overlayDim === "year" ? String(r[0]) : dimValue(r, overlayDim);
@@ -241,16 +305,17 @@ function Dashboard({ db }) {
         const xVal = effectiveXAxis === "month" ? `${r[1]}월` : String(r[0]);
         bucket[xVal] = (bucket[xVal] || 0) + r[6];
       });
-      base.forEach(row => { row[val] = Math.round((bucket[row.x] || 0) * 10) / 10; });
+      return { name: val, color: SERIES_PALETTE[idx % SERIES_PALETTE.length], data: overlayXLabels.map(x => Math.round((bucket[x] || 0) * 10) / 10) };
     });
-    return base;
-  }, [baseFilteredRows, overlayDim, effectiveXAxis, currentOverlayList, overlayYearCtx, years]);
+  }, [baseFilteredRows, overlayDim, effectiveXAxis, currentOverlayList, overlayYearCtx, overlayXLabels]);
 
   function exportOverlayXlsx() {
     const header = ["구분", ...currentOverlayList];
-    const body = overlayData.map(row => [row.x, ...currentOverlayList.map(v => row[v] ?? 0)]);
+    const body = overlayXLabels.map((x, i) => [x, ...overlaySeries.map(s => s.data[i] ?? 0)]);
     downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[overlayDim]}겹쳐보기_검역중량.xlsx`, "겹쳐보기");
   }
+
+  const groupSeries = useMemo(() => [{ name: DIM_LABEL[groupBy], color: COLORS.amber, data: grouped.map(g => g.v) }], [grouped, groupBy]);
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", padding: "24px 16px 40px", color: COLORS.cream }}>
@@ -363,27 +428,12 @@ function Dashboard({ db }) {
                     <button onClick={exportGroupXlsx} style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage }}>⬇ 엑셀 다운로드</button>
                   </div>
                 </div>
-                <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "14px 16px 6px" }}>
-                  <ResponsiveContainer width="100%" height={isTimeGroup ? 300 : Math.min(560, Math.max(200, grouped.length * 26))}>
-                    {isTimeGroup ? (
-                      <LineChart data={grouped} margin={{ top: 8, right: 16, left: -6, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.panelBorder} />
-                        <XAxis dataKey="key" tick={{ fill: COLORS.mute, fontSize: 10.5 }} axisLine={{ stroke: COLORS.panelBorder }} tickLine={false} />
-                        <YAxis tick={{ fill: COLORS.mute, fontSize: 10.5 }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
-                        <Tooltip contentStyle={{ background: "#0f0d0c", border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, fontSize: 12 }} formatter={(v) => [n(v) + " 톤", "검역중량"]} labelStyle={{ color: COLORS.cream }} />
-                        <Line type="monotone" dataKey="v" stroke={COLORS.amber} strokeWidth={2.4} dot={grouped.length < 40 ? { r: 3, fill: COLORS.amber } : false} />
-                      </LineChart>
-                    ) : (
-                      <BarChart data={grouped} layout="vertical" margin={{ left: 4, right: 24 }}>
-                        <XAxis type="number" tick={{ fill: COLORS.mute, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
-                        <YAxis type="category" dataKey="key" width={70} tick={{ fill: COLORS.cream, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ background: "#0f0d0c", border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, fontSize: 12 }} formatter={(v) => [n(v) + " 톤", "검역중량"]} />
-                        <Bar dataKey="v" radius={[0, 4, 4, 0]}>
-                          {grouped.map((_, idx) => <Cell key={idx} fill={SERIES_PALETTE[idx % SERIES_PALETTE.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    )}
-                  </ResponsiveContainer>
+                <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" }}>
+                  {isTimeGroup ? (
+                    <SvgLineChart categories={grouped.map(g => g.key)} series={groupSeries} height={280} />
+                  ) : (
+                    <BarRanking items={grouped} />
+                  )}
                 </div>
               </React.Fragment>
             )}
@@ -411,17 +461,9 @@ function Dashboard({ db }) {
                         color: currentOverlayList.includes(v) ? COLORS.amber : COLORS.mute }}>{v}</button>
                   ))}
                 </div>
-                <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "14px 16px 6px" }}>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <LineChart data={overlayData} margin={{ top: 8, right: 16, left: -6, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={COLORS.panelBorder} />
-                      <XAxis dataKey="x" tick={{ fill: COLORS.mute, fontSize: 11 }} axisLine={{ stroke: COLORS.panelBorder }} tickLine={false} />
-                      <YAxis tick={{ fill: COLORS.mute, fontSize: 10.5 }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
-                      <Tooltip contentStyle={{ background: "#0f0d0c", border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, fontSize: 12 }} formatter={(v) => n(v) + " 톤"} labelStyle={{ color: COLORS.cream }} />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      {currentOverlayList.map((v, idx) => <Line key={v} type="monotone" dataKey={v} name={v} stroke={SERIES_PALETTE[idx % SERIES_PALETTE.length]} strokeWidth={2.2} dot={{ r: 2.5 }} />)}
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" }}>
+                  <SvgLineChart categories={overlayXLabels} series={overlaySeries} height={300} />
+                  <ChartLegend series={overlaySeries} />
                 </div>
               </React.Fragment>
             )}
