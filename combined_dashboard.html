@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>통합 대시보드</title>
+<meta name="description" content="수입검역 현황과 창고 재고 현황을 한 화면에서 확인하는 통합 대시보드" />
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #151312; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Pretendard','Malgun Gothic','Noto Sans KR',sans-serif; }
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #332c29; border-radius: 4px; }
+  input::placeholder { color: #8f857a; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+
+window.QuarantineApp = (function() {
+const { useState, useEffect, useMemo, useRef } = React;
+const COLORS = {
+  bg: "#151312",
+  panel: "#1d1a19",
+  panelBorder: "#2b2624",
+  panelBorder2: "#332c29",
+  amber: "#d98b3f",
+  amberSoft: "#e8b877",
+  cream: "#f2ead9",
+  mute: "#8f857a",
+  sage: "#6f9482",
+  rust: "#c2695f",
+  head: "#141211"
+};
+const SERIES_PALETTE = ["#d98b3f", "#5c8f7a", "#4f8fb8", "#b0a25c", "#a06a9c", "#c2695f", "#8b7bb0", "#5fa88a", "#e0985a", "#7ea0c4"];
+function n(v) {
+  return Math.round(v).toLocaleString();
+}
+function fmtShort(v) {
+  return Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + "\uB9CC" : Math.round(v).toLocaleString();
+}
+function pct(v) {
+  if (v === null) return "\u2014";
+  const s = v > 0 ? "+" : "";
+  return `${s}${v.toFixed(1)}%`;
+}
+const DIM_LABEL = { country: "\uAD6D\uAC00", part: "\uBD80\uC704", year: "\uC5F0\uB3C4", month: "\uC6D4" };
+const DIM_OPTIONS = [["country", "\uAD6D\uAC00"], ["part", "\uBD80\uC704"], ["year", "\uC5F0\uB3C4"], ["month", "\uC6D4"]];
+function downloadXlsx(aoa, filename, sheetName) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName || "Sheet1");
+  XLSX.writeFile(wb, filename);
+}
+function SvgLineChart({ categories, series, height = 260 }) {
+  const width = 760;
+  const manyLabels = categories.length > 16;
+  const padding = { top: 16, right: 16, bottom: manyLabels ? 46 : 26, left: 46 };
+  const innerW = width - padding.left - padding.right;
+  const innerH = height - padding.top - padding.bottom;
+  const maxVal = Math.max(1, ...series.flatMap((s) => s.data));
+  const stepX = categories.length > 1 ? innerW / (categories.length - 1) : 0;
+  const yFor = (v) => padding.top + innerH - v / maxVal * innerH;
+  const xFor = (i) => padding.left + i * stepX;
+  const gridLines = 4;
+  const labelEvery = manyLabels ? Math.ceil(categories.length / 14) : 1;
+  const containerRef = useRef(null);
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const handleMove = (e) => {
+    if (!containerRef.current || categories.length === 0) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const relX = e.clientX - rect.left;
+    const frac = Math.min(1, Math.max(0, relX / rect.width));
+    const idx = Math.round(frac * (categories.length - 1));
+    setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+  const tooltipLeftPct = hoverIdx !== null && categories.length > 1 ? hoverIdx / (categories.length - 1) * 100 : 50;
+  return /* @__PURE__ */ React.createElement("div", { ref: containerRef, style: { position: "relative" }, onMouseMove: handleMove, onMouseLeave: handleLeave }, /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${width} ${height}`, style: { width: "100%", height, display: "block", cursor: "crosshair" }, preserveAspectRatio: "none" }, Array.from({ length: gridLines + 1 }).map((_, i) => {
+    const y = padding.top + innerH / gridLines * i;
+    const val = Math.round(maxVal - maxVal / gridLines * i);
+    return /* @__PURE__ */ React.createElement("g", { key: i }, /* @__PURE__ */ React.createElement("line", { x1: padding.left, x2: width - padding.right, y1: y, y2: y, stroke: COLORS.panelBorder, strokeDasharray: "3 3" }), /* @__PURE__ */ React.createElement("text", { x: padding.left - 6, y: y + 3, textAnchor: "end", fontSize: "9", fill: COLORS.mute }, fmtShort(val)));
+  }), categories.map((c, i) => i % labelEvery === 0 && /* @__PURE__ */ React.createElement("text", { key: i, x: xFor(i), y: height - 8, textAnchor: "middle", fontSize: "9", fill: COLORS.mute }, c)), hoverIdx !== null && /* @__PURE__ */ React.createElement("line", { x1: xFor(hoverIdx), x2: xFor(hoverIdx), y1: padding.top, y2: padding.top + innerH, stroke: COLORS.amberSoft, strokeWidth: "1", strokeDasharray: "2 2" }), series.map((s) => {
+    const points = s.data.map((v, i) => `${xFor(i)},${yFor(v)}`).join(" ");
+    return /* @__PURE__ */ React.createElement("g", { key: s.name }, /* @__PURE__ */ React.createElement("polyline", { points, fill: "none", stroke: s.color, strokeWidth: "2.2" }), categories.length <= 40 && s.data.map((v, i) => /* @__PURE__ */ React.createElement("circle", { key: i, cx: xFor(i), cy: yFor(v), r: i === hoverIdx ? 4 : 2.4, fill: s.color })));
+  })), hoverIdx !== null && /* @__PURE__ */ React.createElement("div", { style: {
+    position: "absolute",
+    left: `${tooltipLeftPct}%`,
+    top: 6,
+    transform: "translateX(-50%)",
+    background: "#0f0d0c",
+    border: `1px solid ${COLORS.panelBorder2}`,
+    borderRadius: 8,
+    padding: "7px 10px",
+    fontSize: 11,
+    pointerEvents: "none",
+    whiteSpace: "nowrap",
+    zIndex: 5,
+    boxShadow: "0 6px 18px rgba(0,0,0,0.4)"
+  } }, /* @__PURE__ */ React.createElement("div", { style: { color: COLORS.mute, marginBottom: 4, fontWeight: 700 } }, categories[hoverIdx]), series.map((s) => /* @__PURE__ */ React.createElement("div", { key: s.name, style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: 2, background: s.color, display: "inline-block", flexShrink: 0 } }), series.length > 1 && /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.cream } }, s.name), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "ui-monospace,monospace", color: COLORS.amberSoft, marginLeft: "auto" } }, n(s.data[hoverIdx]), " \uD1A4")))));
+}
+function ChartLegend({ series }) {
+  if (series.length < 2) return null;
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, paddingBottom: 10 } }, series.map((s) => /* @__PURE__ */ React.createElement("div", { key: s.name, style: { display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: COLORS.cream } }, /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: 3, background: s.color, display: "inline-block" } }), s.name)));
+}
+function BarRanking({ items }) {
+  const maxVal = Math.max(1, ...items.map((i) => i.v));
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, items.map((it, idx) => /* @__PURE__ */ React.createElement("div", { key: it.key, style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 76, fontSize: 11.5, color: COLORS.cream, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, it.key), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#0f0d0c", borderRadius: 5, height: 20, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${it.v / maxVal * 100}%`, height: "100%", background: SERIES_PALETTE[idx % SERIES_PALETTE.length], borderRadius: 5 } })), /* @__PURE__ */ React.createElement("div", { style: { width: 74, fontSize: 11.5, color: COLORS.amberSoft, fontFamily: "ui-monospace,monospace", flexShrink: 0 } }, fmtShort(it.v)))));
+}
+function readParams() {
+  return new URLSearchParams(window.location.search);
+}
+function fmtUpdatedAt(iso) {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return null;
+  }
+}
+function QuarantineApp() {
+  const [db, setDb] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => {
+    fetch("./data/master_flat.json", { cache: "no-store" }).then((r) => {
+      if (!r.ok) throw new Error("\uB370\uC774\uD130 \uD30C\uC77C\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4 (" + r.status + ")");
+      return r.json();
+    }).then(setDb).catch((e) => setErr(e.message));
+  }, []);
+  if (err) return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, color: COLORS.rust, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, err);
+  if (!db) return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, color: COLORS.mute, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, "\uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uB294 \uC911...");
+  return /* @__PURE__ */ React.createElement(Dashboard, { db });
+}
+function Dashboard({ db }) {
+  const META = db.meta;
+  const YEAR_BASE = META.yearBase;
+  const FLAT = db.flat;
+  const ROWS = useMemo(() => {
+    const rows = [];
+    for (let idx = 0; idx < FLAT.length; idx += 7) {
+      rows.push([FLAT[idx] + YEAR_BASE, FLAT[idx + 1], FLAT[idx + 2], FLAT[idx + 3], FLAT[idx + 4], FLAT[idx + 5], FLAT[idx + 6] / 10]);
+    }
+    return rows;
+  }, [FLAT, YEAR_BASE]);
+  const { ALL_YM, YM_MIN, YM_MAX } = useMemo(() => {
+    const set = /* @__PURE__ */ new Set();
+    ROWS.forEach((r) => set.add(r[0] * 100 + r[1]));
+    const all = [...set].sort((a, b) => a - b);
+    return { ALL_YM: all, YM_MIN: all[0], YM_MAX: all[all.length - 1] };
+  }, [ROWS]);
+  const ymLabel = (ym) => `${Math.floor(ym / 100)}\uB144 ${ym % 100}\uC6D4`;
+  function dimValue(r, dimKey) {
+    if (dimKey === "country") return META.\uAD6D\uAC00[r[5]];
+    if (dimKey === "part") return META.\uBD80\uC704[r[4]];
+    if (dimKey === "year") return String(r[0]);
+    return `${r[1]}\uC6D4`;
+  }
+  function monthNum(label) {
+    return parseInt(label, 10);
+  }
+  const initParams = useMemo(() => readParams(), []);
+  const p = (key, fallback) => {
+    var _a;
+    return (_a = initParams.get(key)) != null ? _a : fallback;
+  };
+  const pList = (key) => {
+    const v = initParams.get(key);
+    return v ? v.split(",").filter(Boolean) : [];
+  };
+  const pInt = (key, fallback) => {
+    const v = initParams.get(key);
+    const n2 = parseInt(v, 10);
+    return Number.isFinite(n2) ? n2 : fallback;
+  };
+  const [mainTab, setMainTab] = useState(() => p("tab", "table"));
+  const [chartSub, setChartSub] = useState(() => p("csub", "group"));
+  const [meat, setMeat] = useState(() => p("meat", META.\uD488\uBA85[2] || META.\uD488\uBA85[0]));
+  const [ice, setIce] = useState(() => p("ice", "\uC804\uCCB4"));
+  const [countryFilter, setCountryFilter] = useState(() => pList("c"));
+  const [partFilter, setPartFilter] = useState(() => pList("pt"));
+  const [ymStart, setYmStart] = useState(() => pInt("ys", YM_MIN));
+  const [ymEnd, setYmEnd] = useState(() => pInt("ye", YM_MAX));
+  const onYmStart = (v) => {
+    const val = +v;
+    setYmStart(val);
+    if (val > ymEnd) setYmEnd(val);
+  };
+  const onYmEnd = (v) => {
+    const val = +v;
+    setYmEnd(val);
+    if (val < ymStart) setYmStart(val);
+  };
+  const [rowDim, setRowDim] = useState(() => p("rd", "country"));
+  const [colDim, setColDim] = useState(() => p("cd", "year"));
+  const [displayMode, setDisplayMode] = useState(() => p("dm", "abs"));
+  const [groupBy, setGroupBy] = useState(() => p("gb", "year"));
+  const [sortDesc, setSortDesc] = useState(true);
+  const [overlayDim, setOverlayDim] = useState(() => p("od", "year"));
+  const [overlayXAxis, setOverlayXAxis] = useState(() => p("oxa", "month"));
+  const [overlayYearCtx, setOverlayYearCtx] = useState(() => pInt("oyc", Math.floor(YM_MAX / 100)));
+  const [overlaySel, setOverlaySel] = useState(() => ({ dim: p("od", "year"), list: pList("ol") }));
+  const meatIdx = META.\uD488\uBA85.indexOf(meat);
+  const baseFilteredRows = useMemo(() => {
+    return ROWS.filter((r) => {
+      const [y, m, pIdx, iIdx, rIdx, nIdx] = r;
+      if (pIdx !== meatIdx) return false;
+      if (ice !== "\uC804\uCCB4" && META.\uAD6C\uBD84[iIdx] !== ice) return false;
+      if (countryFilter.length && !countryFilter.includes(META.\uAD6D\uAC00[nIdx])) return false;
+      if (partFilter.length && !partFilter.includes(META.\uBD80\uC704[rIdx])) return false;
+      const ym = y * 100 + m;
+      if (ym < ymStart || ym > ymEnd) return false;
+      return true;
+    });
+  }, [ROWS, meatIdx, ice, countryFilter, partFilter, ymStart, ymEnd]);
+  const years = useMemo(() => [...new Set(baseFilteredRows.map((r) => r[0]))].sort((a, b) => a - b), [baseFilteredRows]);
+  const grandTotalAll = useMemo(() => baseFilteredRows.reduce((s, r) => s + r[6], 0), [baseFilteredRows]);
+  const toggleFilter = (list, setList, value) => setList(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+  function sortLabels(dimKey, labels, totalsMap) {
+    if (dimKey === "year") return [...labels].sort((a, b) => +a - +b);
+    if (dimKey === "month") return [...labels].sort((a, b) => monthNum(a) - monthNum(b));
+    return [...labels].sort((a, b) => (totalsMap[b] || 0) - (totalsMap[a] || 0));
+  }
+  const { rowLabels, colLabels, matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
+    const rowTotalsRaw = {}, colTotalsRaw = {};
+    const matrix2 = {};
+    let grandTotal2 = 0;
+    baseFilteredRows.forEach((r) => {
+      const rl = dimValue(r, rowDim);
+      const cl = dimValue(r, colDim);
+      const ton = r[6];
+      rowTotalsRaw[rl] = (rowTotalsRaw[rl] || 0) + ton;
+      colTotalsRaw[cl] = (colTotalsRaw[cl] || 0) + ton;
+      if (!matrix2[rl]) matrix2[rl] = {};
+      matrix2[rl][cl] = (matrix2[rl][cl] || 0) + ton;
+      grandTotal2 += ton;
+    });
+    const rowLabels2 = sortLabels(rowDim, Object.keys(rowTotalsRaw), rowTotalsRaw);
+    const colLabels2 = sortLabels(colDim, Object.keys(colTotalsRaw), colTotalsRaw);
+    return { rowLabels: rowLabels2, colLabels: colLabels2, matrix: matrix2, rowTotals: rowTotalsRaw, colTotals: colTotalsRaw, grandTotal: grandTotal2 };
+  }, [baseFilteredRows, rowDim, colDim]);
+  function cellDisplay(rowLabel, colLabel, colIdx) {
+    var _a, _b;
+    const val = ((_a = matrix[rowLabel]) == null ? void 0 : _a[colLabel]) || 0;
+    if (displayMode === "abs") return { text: val ? n(val) : "-", raw: val };
+    const prevCol = colLabels[colIdx - 1];
+    if (!prevCol) return { text: "\u2014", raw: null };
+    const prevVal = ((_b = matrix[rowLabel]) == null ? void 0 : _b[prevCol]) || 0;
+    if (prevVal === 0) return { text: val > 0 ? "\uC2E0\uADDC" : "\u2014", raw: null };
+    const growth = (val - prevVal) / prevVal * 100;
+    return { text: pct(growth), raw: growth };
+  }
+  const onRowDimChange = (v) => {
+    if (v === colDim) setColDim(rowDim);
+    setRowDim(v);
+  };
+  const onColDimChange = (v) => {
+    if (v === rowDim) setRowDim(colDim);
+    setColDim(v);
+  };
+  function exportTableXlsx() {
+    const header = [DIM_LABEL[rowDim], ...colLabels, "\uCD1D\uD569\uACC4"];
+    const body = rowLabels.map((rl) => [rl, ...colLabels.map((cl) => {
+      var _a;
+      return Math.round((((_a = matrix[rl]) == null ? void 0 : _a[cl]) || 0) * 100) / 100;
+    }), Math.round(rowTotals[rl] * 100) / 100]);
+    const footer = ["\uCD1D\uD569\uACC4", ...colLabels.map((cl) => Math.round((colTotals[cl] || 0) * 100) / 100), Math.round(grandTotal * 100) / 100];
+    downloadXlsx([header, ...body, footer], `${meat}_${DIM_LABEL[rowDim]}x${DIM_LABEL[colDim]}_\uAC80\uC5ED\uC911\uB7C9.xlsx`, "\uD53C\uBC97\uD45C");
+  }
+  const grouped = useMemo(() => {
+    const map = /* @__PURE__ */ new Map();
+    baseFilteredRows.forEach((r) => {
+      let key = dimValue(r, groupBy);
+      map.set(key, (map.get(key) || 0) + r[6]);
+    });
+    let arr = [...map.entries()].map(([key, v]) => ({ key, v }));
+    if (groupBy === "year") arr.sort((a, b) => +a.key - +b.key);
+    else if (groupBy === "month") arr.sort((a, b) => monthNum(a.key) - monthNum(b.key));
+    else arr.sort((a, b) => sortDesc ? b.v - a.v : a.v - b.v);
+    return arr;
+  }, [baseFilteredRows, groupBy, sortDesc]);
+  const isTimeGroup = groupBy === "year" || groupBy === "month";
+  function exportGroupXlsx() {
+    const header = [DIM_LABEL[groupBy], "\uAC80\uC5ED\uC911\uB7C9(\uD1A4)"];
+    const body = grouped.map((g) => [g.key, Math.round(g.v * 100) / 100]);
+    downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[groupBy]}\uBCC4_\uAC80\uC5ED\uC911\uB7C9.xlsx`, "\uADF8\uB8F9\uBE44\uAD50");
+  }
+  const overlayCandidates = useMemo(() => {
+    if (overlayDim === "year") return years.map(String);
+    if (overlayDim === "country") {
+      const totals2 = {};
+      baseFilteredRows.forEach((r) => {
+        const k = META.\uAD6D\uAC00[r[5]];
+        totals2[k] = (totals2[k] || 0) + r[6];
+      });
+      return Object.keys(totals2).sort((a, b) => totals2[b] - totals2[a]);
+    }
+    const totals = {};
+    baseFilteredRows.forEach((r) => {
+      const k = META.\uBD80\uC704[r[4]];
+      totals[k] = (totals[k] || 0) + r[6];
+    });
+    return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
+  }, [overlayDim, baseFilteredRows, years]);
+  const effectiveXAxis = overlayDim === "year" ? "month" : overlayXAxis;
+  const currentOverlayList = overlaySel.dim === overlayDim && overlaySel.list.length ? overlaySel.list.filter((v) => overlayCandidates.includes(v)) : overlayCandidates.slice(0, overlayDim === "year" ? Math.min(3, overlayCandidates.length) : 5);
+  useEffect(() => {
+    const sp = new URLSearchParams();
+    sp.set("meat", meat);
+    if (ice !== "\uC804\uCCB4") sp.set("ice", ice);
+    if (countryFilter.length) sp.set("c", countryFilter.join(","));
+    if (partFilter.length) sp.set("pt", partFilter.join(","));
+    sp.set("ys", ymStart);
+    sp.set("ye", ymEnd);
+    sp.set("tab", mainTab);
+    if (mainTab === "table") {
+      sp.set("rd", rowDim);
+      sp.set("cd", colDim);
+      if (displayMode !== "abs") sp.set("dm", displayMode);
+    } else {
+      sp.set("csub", chartSub);
+      if (chartSub === "group") sp.set("gb", groupBy);
+      if (chartSub === "overlay") {
+        sp.set("od", overlayDim);
+        if (overlayDim !== "year") sp.set("oxa", overlayXAxis);
+        if (overlayDim !== "year" && effectiveXAxis === "month") sp.set("oyc", overlayYearCtx);
+        if (overlaySel.list.length) sp.set("ol", overlaySel.list.join(","));
+      }
+    }
+    const newSearch = "?" + sp.toString();
+    if (newSearch !== window.location.search) window.history.replaceState(null, "", newSearch);
+  }, [meat, ice, countryFilter, partFilter, ymStart, ymEnd, mainTab, rowDim, colDim, displayMode, chartSub, groupBy, overlayDim, overlayXAxis, overlayYearCtx, overlaySel]);
+  const [linkCopied, setLinkCopied] = useState(false);
+  function copyShareLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1600);
+    }).catch(() => {
+    });
+  }
+  const toggleOverlay = (v) => {
+    const list = currentOverlayList.includes(v) ? currentOverlayList.filter((x) => x !== v) : [...currentOverlayList, v];
+    setOverlaySel({ dim: overlayDim, list });
+  };
+  const selectAllOverlay = () => setOverlaySel({ dim: overlayDim, list: [...overlayCandidates] });
+  const clearOverlay = () => setOverlaySel({ dim: overlayDim, list: [] });
+  const overlayXLabels = useMemo(() => effectiveXAxis === "month" ? Array.from({ length: 12 }, (_, i) => `${i + 1}\uC6D4`) : years.map(String), [effectiveXAxis, years]);
+  const overlaySeries = useMemo(() => {
+    let rowsForOverlay = baseFilteredRows;
+    if (overlayDim !== "year" && effectiveXAxis === "month") rowsForOverlay = rowsForOverlay.filter((r) => r[0] === overlayYearCtx);
+    return currentOverlayList.map((val, idx) => {
+      const bucket = {};
+      rowsForOverlay.forEach((r) => {
+        const seriesVal = overlayDim === "year" ? String(r[0]) : dimValue(r, overlayDim);
+        if (seriesVal !== val) return;
+        const xVal = effectiveXAxis === "month" ? `${r[1]}\uC6D4` : String(r[0]);
+        bucket[xVal] = (bucket[xVal] || 0) + r[6];
+      });
+      return { name: val, color: SERIES_PALETTE[idx % SERIES_PALETTE.length], data: overlayXLabels.map((x) => Math.round((bucket[x] || 0) * 10) / 10) };
+    });
+  }, [baseFilteredRows, overlayDim, effectiveXAxis, currentOverlayList, overlayYearCtx, overlayXLabels]);
+  function exportOverlayXlsx() {
+    const header = ["\uAD6C\uBD84", ...currentOverlayList];
+    const body = overlayXLabels.map((x, i) => [x, ...overlaySeries.map((s) => {
+      var _a;
+      return (_a = s.data[i]) != null ? _a : 0;
+    })]);
+    downloadXlsx([header, ...body], `${meat}_${DIM_LABEL[overlayDim]}\uACB9\uCCD0\uBCF4\uAE30_\uAC80\uC5ED\uC911\uB7C9.xlsx`, "\uACB9\uCCD0\uBCF4\uAE30");
+  }
+  const groupSeries = useMemo(() => [{ name: DIM_LABEL[groupBy], color: COLORS.amber, data: grouped.map((g) => g.v) }], [grouped, groupBy]);
+  return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, minHeight: "100vh", padding: "clamp(14px,4vw,24px) clamp(10px,3vw,16px) 40px", color: COLORS.cream } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1120, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, marginBottom: 3 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11.5, letterSpacing: "0.13em", color: COLORS.mute, fontWeight: 700 } }, "2019 \u2013 2026 \uC218\uC785\uCD95\uC0B0\uBB3C \uAC80\uC5ED\uC911\uB7C9")), /* @__PURE__ */ React.createElement("h1", { style: { fontSize: "clamp(18px,5.5vw,23px)", fontWeight: 800, margin: "5px 0 16px", letterSpacing: "-0.01em" } }, meat, " \uAC80\uC5ED\uC911\uB7C9 (\uD1A4)"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" } }, META.\uD488\uBA85.map((p2) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: p2,
+      onClick: () => setMeat(p2),
+      style: {
+        padding: "7px 14px",
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: "pointer",
+        border: `1px solid ${p2 === meat ? COLORS.amber : COLORS.panelBorder}`,
+        background: p2 === meat ? "rgba(217,139,63,0.14)" : COLORS.panel,
+        color: p2 === meat ? COLORS.amber : COLORS.mute
+      }
+    },
+    p2
+  ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement(ChipGroup, { label: "\uAD6C\uBD84", options: ["\uC804\uCCB4", "\uB0C9\uB3D9", "\uB0C9\uC7A5"], value: ice, onChange: setIce }), /* @__PURE__ */ React.createElement(HoverMultiPicker, { label: "\uAD6D\uAC00", options: META.\uAD6D\uAC00, selected: countryFilter, onToggle: (v) => toggleFilter(countryFilter, setCountryFilter, v), onSelectAll: () => setCountryFilter([...META.\uAD6D\uAC00]), onClear: () => setCountryFilter([]) }), /* @__PURE__ */ React.createElement(HoverMultiPicker, { label: "\uBD80\uC704", options: META.\uBD80\uC704.filter((p2) => p2 !== "-"), selected: partFilter, onToggle: (v) => toggleFilter(partFilter, setPartFilter, v), onSelectAll: () => setPartFilter(META.\uBD80\uC704.filter((p2) => p2 !== "-")), onClear: () => setPartFilter([]) })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 14 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, "\uAE30\uAC04"), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC2DC\uC791", value: ymStart, onChange: onYmStart, options: ALL_YM.map((ym) => [ym, ymLabel(ym)]) }), /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.mute } }, "\u2013"), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC885\uB8CC", value: ymEnd, onChange: onYmEnd, options: ALL_YM.map((ym) => [ym, ymLabel(ym)]) }), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => {
+        setYmStart(YM_MIN);
+        setYmEnd(YM_MAX);
+      },
+      style: { fontSize: 11, color: COLORS.mute, background: "none", border: `1px solid ${COLORS.panelBorder}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer" }
+    },
+    "\uC804\uCCB4\uAE30\uAC04"
+  )), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: COLORS.mute } }, meat, " \xB7 ", ice, countryFilter.length ? ` \xB7 \uAD6D\uAC00 ${countryFilter.length}\uAC1C` : "", partFilter.length ? ` \xB7 \uBD80\uC704 ${partFilter.length}\uAC1C` : "", " \xB7 ", ymLabel(ymStart), "~", ymLabel(ymEnd)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: copyShareLink,
+      style: { fontSize: 11, fontWeight: 700, color: linkCopied ? COLORS.sage : COLORS.mute, background: "none", border: `1px solid ${linkCopied ? COLORS.sage : COLORS.panelBorder}`, borderRadius: 6, padding: "5px 10px", cursor: "pointer" }
+    },
+    linkCopied ? "\u2713 \uBCF5\uC0AC\uB428" : "\u{1F517} \uC774 \uD654\uBA74 \uB9C1\uD06C \uBCF5\uC0AC"
+  ), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 800, color: COLORS.amber, fontFamily: "ui-monospace,monospace" } }, "\uD569\uACC4 ", n(grandTotalAll), " \uD1A4"))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: COLORS.mute, marginBottom: 14, textAlign: "right" } }, db.updatedAt ? `\uCD5C\uADFC \uB370\uC774\uD130 \uAC31\uC2E0: ${fmtUpdatedAt(db.updatedAt)}` : "\uB370\uC774\uD130 \uAC31\uC2E0 \uC815\uBCF4 \uC5C6\uC74C (\uCCAB \uC790\uB3D9 \uAC31\uC2E0 \uC774\uD6C4 \uD45C\uC2DC\uB429\uB2C8\uB2E4)"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement(SheetTab, { active: mainTab === "table", onClick: () => setMainTab("table"), label: "\uD45C" }), /* @__PURE__ */ React.createElement(SheetTab, { active: mainTab === "chart", onClick: () => setMainTab("chart"), label: "\uCC28\uD2B8" })), mainTab === "table" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uD589", value: rowDim, onChange: onRowDimChange, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC5F4", value: colDim, onChange: onColDimChange, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(ToggleBtn, { active: displayMode === "abs", onClick: () => setDisplayMode("abs"), label: "\uC2E4\uC218\uCE58(\uD1A4)" }), /* @__PURE__ */ React.createElement(ToggleBtn, { active: displayMode === "yoy", onClick: () => setDisplayMode("yoy"), label: "\uC804 \uC5F4 \uB300\uBE44 \uC99D\uAC10\uB960" }), /* @__PURE__ */ React.createElement("button", { onClick: exportTableXlsx, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC"))), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", maxHeight: 560, overflowY: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { borderCollapse: "collapse", fontSize: 12.5, width: "100%" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { ...thStyle, position: "sticky", left: 0, top: 0, zIndex: 3, background: COLORS.head, minWidth: 108 } }, DIM_LABEL[rowDim]), colLabels.map((cl) => /* @__PURE__ */ React.createElement("th", { key: cl, style: { ...thStyle, position: "sticky", top: 0, zIndex: 2, background: COLORS.head, textAlign: "right", minWidth: 84 } }, cl)), /* @__PURE__ */ React.createElement("th", { style: { ...thStyle, position: "sticky", top: 0, right: 0, zIndex: 3, background: "#1a1613", textAlign: "right", minWidth: 96, color: COLORS.amberSoft } }, "\uCD1D\uD569\uACC4"))), /* @__PURE__ */ React.createElement("tbody", null, rowLabels.map((rl) => /* @__PURE__ */ React.createElement("tr", { key: rl, style: { borderTop: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, position: "sticky", left: 0, background: COLORS.panel, fontWeight: 700, zIndex: 1 } }, rl), colLabels.map((cl, ci) => {
+    const { text, raw } = cellDisplay(rl, cl, ci);
+    const color = displayMode === "yoy" ? raw === null ? COLORS.mute : raw > 0 ? COLORS.sage : raw < 0 ? COLORS.rust : COLORS.mute : COLORS.cream;
+    return /* @__PURE__ */ React.createElement("td", { key: cl, style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", color } }, text);
+  }), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 700, color: COLORS.amberSoft, position: "sticky", right: 0, background: "#1a1613" } }, n(rowTotals[rl]))))), /* @__PURE__ */ React.createElement("tfoot", null, /* @__PURE__ */ React.createElement("tr", { style: { borderTop: `2px solid ${COLORS.panelBorder2}` } }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, position: "sticky", left: 0, background: "#1a1613", fontWeight: 800 } }, "\uCD1D\uD569\uACC4"), colLabels.map((cl) => /* @__PURE__ */ React.createElement("td", { key: cl, style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amberSoft } }, n(colTotals[cl] || 0))), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amber, position: "sticky", right: 0, background: "#1a1613" } }, n(grandTotal)))))))), mainTab === "chart" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 12 } }, /* @__PURE__ */ React.createElement(SubTab, { active: chartSub === "group", onClick: () => setChartSub("group"), label: "\uADF8\uB8F9 \uBE44\uAD50" }), /* @__PURE__ */ React.createElement(SubTab, { active: chartSub === "overlay", onClick: () => setChartSub("overlay"), label: "\uACB9\uCCD0\uBCF4\uAE30" })), chartSub === "group" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uAE30\uC900", value: groupBy, onChange: setGroupBy, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center" } }, !isTimeGroup && /* @__PURE__ */ React.createElement("button", { onClick: () => setSortDesc(!sortDesc), style: { fontSize: 11.5, color: COLORS.mute, background: "none", border: "none", cursor: "pointer" } }, "\u21C5 ", sortDesc ? "\uB0B4\uB9BC\uCC28\uC21C" : "\uC624\uB984\uCC28\uC21C"), /* @__PURE__ */ React.createElement("button", { onClick: exportGroupXlsx, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC"))), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" } }, isTimeGroup ? /* @__PURE__ */ React.createElement(SvgLineChart, { categories: grouped.map((g) => g.key), series: groupSeries, height: 280 }) : /* @__PURE__ */ React.createElement(BarRanking, { items: grouped }))), chartSub === "overlay" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 10 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uBE44\uAD50\uAE30\uC900", value: overlayDim, onChange: (v) => {
+    setOverlayDim(v);
+    setOverlaySel({ dim: v, list: [] });
+  }, options: [["year", "\uC5F0\uB3C4"], ["country", "\uAD6D\uAC00"], ["part", "\uBD80\uC704"]] }), overlayDim !== "year" && /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "X\uCD95", value: overlayXAxis, onChange: setOverlayXAxis, options: [["month", "\uC6D4\uBCC4"], ["year", "\uC5F0\uB3C4\uBCC4"]] }), overlayDim !== "year" && effectiveXAxis === "month" && /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uAE30\uC900\uC5F0\uB3C4", value: overlayYearCtx, onChange: setOverlayYearCtx, options: years.map((y) => [y, `${y}\uB144`]) }), /* @__PURE__ */ React.createElement("button", { onClick: exportOverlayXlsx, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage, marginLeft: "auto" } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, "\uACB9\uCCD0\uBCFC ", DIM_LABEL[overlayDim], " \uC120\uD0DD:"), /* @__PURE__ */ React.createElement("button", { onClick: selectAllOverlay, style: { fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uC120\uD0DD"), /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.panelBorder2 } }, "|"), /* @__PURE__ */ React.createElement("button", { onClick: clearOverlay, style: { fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uD574\uC81C")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 } }, overlayCandidates.map((v) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: v,
+      onClick: () => toggleOverlay(v),
+      style: {
+        padding: "5px 11px",
+        borderRadius: 7,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        border: `1px solid ${currentOverlayList.includes(v) ? COLORS.amber : COLORS.panelBorder}`,
+        background: currentOverlayList.includes(v) ? "rgba(217,139,63,0.14)" : COLORS.panel,
+        color: currentOverlayList.includes(v) ? COLORS.amber : COLORS.mute
+      }
+    },
+    v
+  ))), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: "16px" } }, /* @__PURE__ */ React.createElement(SvgLineChart, { categories: overlayXLabels, series: overlaySeries, height: 300 }), /* @__PURE__ */ React.createElement(ChartLegend, { series: overlaySeries })))), /* @__PURE__ */ React.createElement("p", { style: { fontSize: 10.5, color: COLORS.mute, marginTop: 14, lineHeight: 1.6 } }, "\uC790\uB8CC: \uC2DD\uC57D\uCC98 \uC218\uC785\uC2DD\uD488\uC815\uBCF4\uB9C8\uB8E8 \uD788\uC2A4\uD1A0\uB9AC + \uACF5\uACF5\uB370\uC774\uD130\uD3EC\uD138 \uC2E4\uC2DC\uAC04 API \uBCD1\uD569. \uB2E8\uC704 kg \u2192 \uD1A4. \uB9E4\uC77C \uC790\uB3D9 \uAC31\uC2E0\uB429\uB2C8\uB2E4.")));
+}
+const thStyle = { textAlign: "left", padding: "8px 8px", fontSize: 10.5, color: "#8f857a", fontWeight: 700, borderBottom: "1px solid #2b2624", whiteSpace: "nowrap" };
+const tdStyle = { padding: "6px 8px", color: "#f2ead9" };
+function SheetTab({ active, onClick, label }) {
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "9px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: active ? `2px solid ${COLORS.amber}` : "2px solid transparent", color: active ? COLORS.amber : COLORS.mute, marginBottom: -1 } }, label);
+}
+function SubTab({ active, onClick, label }) {
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${active ? COLORS.amber : COLORS.panelBorder}`, background: active ? "rgba(217,139,63,0.14)" : COLORS.panel, color: active ? COLORS.amber : COLORS.mute } }, label);
+}
+function ToggleBtn({ active, onClick, label }) {
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${active ? COLORS.amber : COLORS.panelBorder}`, background: active ? "rgba(217,139,63,0.14)" : COLORS.panel, color: active ? COLORS.amber : COLORS.mute } }, label);
+}
+function ChipGroup({ label, options, value, onChange }) {
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute, paddingLeft: 4 } }, label), options.map((o) => /* @__PURE__ */ React.createElement("button", { key: o, onClick: () => onChange(o), style: { padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "none", background: o === value ? COLORS.amber : "transparent", color: o === value ? "#1a1512" : COLORS.mute } }, o)));
+}
+function HoverAxisPicker({ label, value, onChange, options }) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const enter = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    timer.current = setTimeout(() => setOpen(false), 150);
+  };
+  const found = options.find(([v]) => v === value);
+  const currentLabel = found ? found[1] : value;
+  return /* @__PURE__ */ React.createElement("div", { onMouseEnter: enter, onMouseLeave: leave, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, fontWeight: 700, color: COLORS.amber } }, currentLabel), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: COLORS.mute } }, "\u25BE")), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 6, minWidth: 130, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" } }, options.map(([v, l]) => /* @__PURE__ */ React.createElement("button", { key: v, onClick: () => {
+    onChange(v);
+    setOpen(false);
+  }, style: { display: "block", width: "100%", textAlign: "left", padding: "6px 10px", borderRadius: 6, fontSize: 12.5, cursor: "pointer", border: "none", background: v === value ? "rgba(217,139,63,0.18)" : "transparent", color: v === value ? COLORS.amberSoft : COLORS.cream, whiteSpace: "nowrap" } }, l))));
+}
+function HoverMultiPicker({ label, options, selected, onToggle, onSelectAll, onClear }) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const enter = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    timer.current = setTimeout(() => setOpen(false), 150);
+  };
+  return /* @__PURE__ */ React.createElement("div", { onMouseEnter: enter, onMouseLeave: leave, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${selected.length ? COLORS.amber : COLORS.panelBorder}`, borderRadius: 8, padding: "6px 12px", color: selected.length ? COLORS.amber : COLORS.mute, fontSize: 12.5, fontWeight: 600 } }, label, " ", selected.length ? `(${selected.length})` : "\uC804\uCCB4", " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, "\u25BE")), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 10, width: 240, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, options.length, "\uAC1C \uC635\uC158"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: onSelectAll, style: { fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uC120\uD0DD"), /* @__PURE__ */ React.createElement("button", { onClick: onClear, style: { fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uCD08\uAE30\uD654"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5 } }, options.map((o) => /* @__PURE__ */ React.createElement("button", { key: o, onClick: () => onToggle(o), style: { padding: "4px 9px", borderRadius: 6, fontSize: 11.5, cursor: "pointer", border: `1px solid ${selected.includes(o) ? COLORS.amber : COLORS.panelBorder2}`, background: selected.includes(o) ? "rgba(217,139,63,0.18)" : "transparent", color: selected.includes(o) ? COLORS.amberSoft : COLORS.mute } }, o)))));
+}
+  return QuarantineApp;
+})();
+
+
+window.WarehouseDashboardApp = (function() {
+const { useState, useMemo, useRef } = React;
+const COLORS = {
+  bg: "#151312",
+  panel: "#1d1a19",
+  panelBorder: "#2b2624",
+  panelBorder2: "#332c29",
+  amber: "#d98b3f",
+  amberSoft: "#e8b877",
+  cream: "#f2ead9",
+  mute: "#8f857a",
+  sage: "#6f9482",
+  rust: "#c2695f",
+  head: "#141211"
+};
+const SERIES_PALETTE = ["#d98b3f", "#5c8f7a", "#4f8fb8", "#b0a25c", "#a06a9c", "#c2695f", "#8b7bb0", "#5fa88a"];
+function n(v) {
+  return Math.round(v).toLocaleString();
+}
+function fmtShort(v) {
+  return Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + "\uB9CC" : Math.round(v).toLocaleString();
+}
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const target = new Date(dateStr);
+  const today = /* @__PURE__ */ new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((target - today) / (1e3 * 60 * 60 * 24));
+  return diff;
+}
+function nineMonthsFromNow() {
+  const d = /* @__PURE__ */ new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() + 9);
+  return d;
+}
+function isWithinNineMonths(dateStr) {
+  if (!dateStr) return false;
+  const target = new Date(dateStr);
+  return target <= nineMonthsFromNow();
+}
+function expiryColor(days) {
+  if (days === null) return COLORS.mute;
+  if (days < 0) return COLORS.rust;
+  if (isWithinNineMonthsDays(days)) return "#e0985a";
+  return COLORS.cream;
+}
+function isWithinNineMonthsDays(days) {
+  return days <= 274;
+}
+function downloadXlsx(aoa, filename, sheetName) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName || "Sheet1");
+  XLSX.writeFile(wb, filename);
+}
+const DIM_LABEL = { \uCC3D\uACE0\uBA85: "\uCC3D\uACE0", \uACF5\uAE09\uC0AC: "\uACF5\uAE09\uC0AC", \uD1B5\uAD00\uC0C1\uD0DC: "\uD1B5\uAD00\uC0C1\uD0DC" };
+const DIM_OPTIONS = [["\uCC3D\uACE0\uBA85", "\uCC3D\uACE0"], ["\uACF5\uAE09\uC0AC", "\uACF5\uAE09\uC0AC"], ["\uD1B5\uAD00\uC0C1\uD0DC", "\uD1B5\uAD00\uC0C1\uD0DC"]];
+function WarehouseDashboardApp() {
+  const [db, setDb] = useState(null);
+  const [err, setErr] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const load = () => {
+    setLoading(true);
+    setErr(null);
+    fetch("./data/warehouse_stock.json", { cache: "no-store" }).then((r) => {
+      if (!r.ok) throw new Error("\uB370\uC774\uD130 \uD30C\uC77C\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4 (" + r.status + ")");
+      return r.json();
+    }).then((d) => {
+      setDb(d);
+      setLoading(false);
+    }).catch((e) => {
+      setErr(e.message);
+      setLoading(false);
+    });
+  };
+  React.useEffect(load, [reloadKey]);
+  if (err) return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, color: COLORS.rust, minHeight: "100vh", display: "flex", flexDirection: "column", gap: 12, alignItems: "center", justifyContent: "center", fontSize: 14 } }, /* @__PURE__ */ React.createElement("div", null, err), /* @__PURE__ */ React.createElement("button", { onClick: () => setReloadKey((k) => k + 1), style: { padding: "6px 14px", borderRadius: 8, border: `1px solid ${COLORS.rust}`, background: "none", color: COLORS.rust, cursor: "pointer", fontSize: 12 } }, "\uB2E4\uC2DC \uC2DC\uB3C4"));
+  if (!db) return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, color: COLORS.mute, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, "\uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uB294 \uC911...");
+  return /* @__PURE__ */ React.createElement(Dashboard, { db, onRefresh: () => setReloadKey((k) => k + 1), refreshing: loading });
+}
+function Dashboard({ db, onRefresh, refreshing }) {
+  const ROWS = db.\uB370\uC774\uD130;
+  const [mainTab, setMainTab] = useState("summary");
+  const [warehouseFilter, setWarehouseFilter] = useState([]);
+  const [supplierFilter, setSupplierFilter] = useState([]);
+  const [customsFilter, setCustomsFilter] = useState("\uC804\uCCB4");
+  const [valueMode, setValueMode] = useState("\uC7AC\uACE0\uC218\uB7C9");
+  const [rowDim, setRowDim] = useState("\uCC3D\uACE0\uBA85");
+  const [colDim, setColDim] = useState("\uD1B5\uAD00\uC0C1\uD0DC");
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("\uC720\uD1B5\uAE30\uD55C\uC784\uBC15\uC21C");
+  const [expiryFilter, setExpiryFilter] = useState("\uC804\uCCB4");
+  const warehouses = useMemo(() => [...new Set(ROWS.map((r) => r.\uCC3D\uACE0\uBA85))].sort(), []);
+  const suppliers = useMemo(() => {
+    const totals = {};
+    ROWS.forEach((r) => {
+      totals[r.\uACF5\uAE09\uC0AC] = (totals[r.\uACF5\uAE09\uC0AC] || 0) + r.\uC7AC\uACE0\uC218\uB7C9;
+    });
+    return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
+  }, []);
+  const toggle = (list, setList, v) => setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+  const filtered = useMemo(() => {
+    return ROWS.filter((r) => {
+      if (warehouseFilter.length && !warehouseFilter.includes(r.\uCC3D\uACE0\uBA85)) return false;
+      if (supplierFilter.length && !supplierFilter.includes(r.\uACF5\uAE09\uC0AC)) return false;
+      if (customsFilter !== "\uC804\uCCB4" && r.\uD1B5\uAD00\uC0C1\uD0DC !== customsFilter) return false;
+      if (expiryFilter === "9\uAC1C\uC6D4\uC774\uB0B4" && !isWithinNineMonths(r.\uC720\uD1B5\uAE30\uD55C)) return false;
+      if (search.trim()) {
+        const q = search.trim().toUpperCase();
+        const hay = `${r.\uD488\uBAA9\uBA85} ${r.LOT\uBC88\uD638} ${r.BL\uBC88\uD638}`.toUpperCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [warehouseFilter, supplierFilter, customsFilter, expiryFilter, search]);
+  const kpi = useMemo(() => {
+    const totalQty = filtered.reduce((s, r) => s + r.\uC7AC\uACE0\uC218\uB7C9, 0);
+    const totalWeight = filtered.reduce((s, r) => s + r.\uC911\uB7C9_kg, 0);
+    const soon = filtered.filter((r) => isWithinNineMonths(r.\uC720\uD1B5\uAE30\uD55C)).length;
+    return { count: filtered.length, totalQty, totalWeight, soon };
+  }, [filtered]);
+  const { rowLabels, colLabels, matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
+    const rowTotalsRaw = {}, colTotalsRaw = {};
+    const matrix2 = {};
+    let grandTotal2 = 0;
+    filtered.forEach((r) => {
+      const rl = r[rowDim] || "(\uBBF8\uC0C1)";
+      const cl = r[colDim] || "(\uBBF8\uC0C1)";
+      const val = r[valueMode];
+      rowTotalsRaw[rl] = (rowTotalsRaw[rl] || 0) + val;
+      colTotalsRaw[cl] = (colTotalsRaw[cl] || 0) + val;
+      if (!matrix2[rl]) matrix2[rl] = {};
+      matrix2[rl][cl] = (matrix2[rl][cl] || 0) + val;
+      grandTotal2 += val;
+    });
+    const rowLabels2 = Object.keys(rowTotalsRaw).sort((a, b) => rowTotalsRaw[b] - rowTotalsRaw[a]);
+    const colLabels2 = Object.keys(colTotalsRaw).sort((a, b) => colTotalsRaw[b] - colTotalsRaw[a]);
+    return { rowLabels: rowLabels2, colLabels: colLabels2, matrix: matrix2, rowTotals: rowTotalsRaw, colTotals: colTotalsRaw, grandTotal: grandTotal2 };
+  }, [filtered, rowDim, colDim, valueMode]);
+  const onRowDimChange = (v) => {
+    if (v === colDim) setColDim(rowDim);
+    setRowDim(v);
+  };
+  const onColDimChange = (v) => {
+    if (v === rowDim) setRowDim(colDim);
+    setColDim(v);
+  };
+  const detailSorted = useMemo(() => {
+    const arr = [...filtered];
+    if (sortKey === "\uC720\uD1B5\uAE30\uD55C\uC784\uBC15\uC21C") {
+      arr.sort((a, b) => {
+        const da = daysUntil(a.\uC720\uD1B5\uAE30\uD55C);
+        const db2 = daysUntil(b.\uC720\uD1B5\uAE30\uD55C);
+        if (da === null) return 1;
+        if (db2 === null) return -1;
+        return da - db2;
+      });
+    } else if (sortKey === "\uC7AC\uACE0\uC218\uB7C9\uB9CE\uC740\uC21C") arr.sort((a, b) => b.\uC7AC\uACE0\uC218\uB7C9 - a.\uC7AC\uACE0\uC218\uB7C9);
+    else if (sortKey === "\uC911\uB7C9\uB9CE\uC740\uC21C") arr.sort((a, b) => b.\uC911\uB7C9_kg - a.\uC911\uB7C9_kg);
+    return arr;
+  }, [filtered, sortKey]);
+  function exportSummaryXlsx() {
+    const header = [DIM_LABEL[rowDim], ...colLabels, "\uCD1D\uD569\uACC4"];
+    const body = rowLabels.map((rl) => [rl, ...colLabels.map((cl) => {
+      var _a;
+      return Math.round((((_a = matrix[rl]) == null ? void 0 : _a[cl]) || 0) * 100) / 100;
+    }), Math.round(rowTotals[rl] * 100) / 100]);
+    const footer = ["\uCD1D\uD569\uACC4", ...colLabels.map((cl) => Math.round((colTotals[cl] || 0) * 100) / 100), Math.round(grandTotal * 100) / 100];
+    downloadXlsx([header, ...body, footer], `\uCC3D\uACE0\uC7AC\uACE0_${DIM_LABEL[rowDim]}x${DIM_LABEL[colDim]}_${valueMode}.xlsx`, "\uC694\uC57D");
+  }
+  function exportDetailXlsx() {
+    const header = ["\uCC3D\uACE0", "\uD488\uBAA9\uBA85", "\uACF5\uAE09\uC0AC", "\uC7AC\uACE0\uC218\uB7C9", "\uC911\uB7C9(kg)", "\uC800\uC7A5\uC704\uCE58", "\uC720\uD1B5\uAE30\uD55C", "\uD1B5\uAD00\uC0C1\uD0DC", "LOT\uBC88\uD638", "BL\uBC88\uD638"];
+    const body = detailSorted.map((r) => [r.\uCC3D\uACE0\uBA85, r.\uD488\uBAA9\uBA85, r.\uACF5\uAE09\uC0AC, r.\uC7AC\uACE0\uC218\uB7C9, r.\uC911\uB7C9_kg, r.\uC800\uC7A5\uC704\uCE58, r.\uC720\uD1B5\uAE30\uD55C || "", r.\uD1B5\uAD00\uC0C1\uD0DC, r.LOT\uBC88\uD638, r.BL\uBC88\uD638]);
+    downloadXlsx([header, ...body], "\uCC3D\uACE0\uC7AC\uACE0_\uC0C1\uC138.xlsx", "\uC0C1\uC138");
+  }
+  return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.bg, minHeight: "100vh", padding: "clamp(14px,4vw,24px) clamp(10px,3vw,16px) 40px", color: COLORS.cream, fontFamily: "'Pretendard','Malgun Gothic','Noto Sans KR',sans-serif" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1120, margin: "0 auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, letterSpacing: "0.13em", color: COLORS.mute, fontWeight: 700 } }, "\uCC3D\uACE0 \uD1B5\uD569 \uC7AC\uACE0 \uB300\uC2DC\uBCF4\uB4DC"), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: onRefresh,
+      disabled: refreshing,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "5px 12px",
+        borderRadius: 8,
+        fontSize: 11.5,
+        fontWeight: 700,
+        border: `1px solid ${COLORS.panelBorder}`,
+        background: COLORS.panel,
+        color: refreshing ? COLORS.mute : COLORS.amberSoft,
+        cursor: refreshing ? "default" : "pointer"
+      }
+    },
+    refreshing ? "\uAC31\uC2E0 \uC911..." : "\u{1F504} \uC0C8\uB85C\uACE0\uCE68"
+  )), /* @__PURE__ */ React.createElement("h1", { style: { fontSize: "clamp(18px,5.5vw,23px)", fontWeight: 800, margin: "5px 0 16px" } }, "\uC2E4\uC2DC\uAC04 \uC7AC\uACE0 \uD604\uD669"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement(HoverMultiPicker, { label: "\uCC3D\uACE0", options: warehouses, selected: warehouseFilter, onToggle: (v) => toggle(warehouseFilter, setWarehouseFilter, v), onSelectAll: () => setWarehouseFilter([...warehouses]), onClear: () => setWarehouseFilter([]) }), /* @__PURE__ */ React.createElement(HoverMultiPicker, { label: "\uACF5\uAE09\uC0AC", options: suppliers, selected: supplierFilter, onToggle: (v) => toggle(supplierFilter, setSupplierFilter, v), onSelectAll: () => setSupplierFilter([...suppliers]), onClear: () => setSupplierFilter([]) }), /* @__PURE__ */ React.createElement(ChipGroup, { label: "\uD1B5\uAD00\uC0C1\uD0DC", options: ["\uC804\uCCB4", "\uD1B5\uAD00", "\uBBF8\uD1B5\uAD00"], value: customsFilter, onChange: setCustomsFilter }), /* @__PURE__ */ React.createElement(ChipGroup, { label: "\uC720\uD1B5\uAE30\uD55C", options: ["\uC804\uCCB4", "9\uAC1C\uC6D4\uC774\uB0B4"], value: expiryFilter, onChange: setExpiryFilter })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 16 } }, /* @__PURE__ */ React.createElement(KpiCard, { label: "\uAC80\uC0C9\uB41C SKU \uAC74\uC218", value: n(kpi.count), accent: COLORS.amber }), /* @__PURE__ */ React.createElement(KpiCard, { label: "\uCD1D \uC7AC\uACE0\uC218\uB7C9", value: n(kpi.totalQty), accent: COLORS.cream }), /* @__PURE__ */ React.createElement(KpiCard, { label: "\uCD1D \uC911\uB7C9 (kg)", value: n(kpi.totalWeight), accent: COLORS.cream }), /* @__PURE__ */ React.createElement(KpiCard, { label: "\uC720\uD1B5\uAE30\uD55C 9\uAC1C\uC6D4 \uC774\uB0B4", value: n(kpi.soon), accent: kpi.soon > 0 ? COLORS.rust : COLORS.sage, warn: kpi.soon > 0 })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginBottom: 14, borderBottom: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement(SheetTab, { active: mainTab === "summary", onClick: () => setMainTab("summary"), label: "\uC694\uC57D(\uD53C\uBC97)" }), /* @__PURE__ */ React.createElement(SheetTab, { active: mainTab === "detail", onClick: () => setMainTab("detail"), label: "\uC0C1\uC138\uAC80\uC0C9" })), mainTab === "summary" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 } }, /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uD589", value: rowDim, onChange: onRowDimChange, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC5F4", value: colDim, onChange: onColDimChange, options: DIM_OPTIONS }), /* @__PURE__ */ React.createElement(ChipGroup, { label: "\uAC12\uAE30\uC900", options: ["\uC7AC\uACE0\uC218\uB7C9", "\uC911\uB7C9_kg"], value: valueMode, onChange: setValueMode }), /* @__PURE__ */ React.createElement("button", { onClick: exportSummaryXlsx, style: { marginLeft: "auto", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC")), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", maxHeight: 520, overflowY: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { borderCollapse: "collapse", fontSize: 12.5, width: "100%" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { ...thStyle, position: "sticky", left: 0, top: 0, zIndex: 3, background: COLORS.head, minWidth: 110 } }, DIM_LABEL[rowDim]), colLabels.map((cl) => /* @__PURE__ */ React.createElement("th", { key: cl, style: { ...thStyle, position: "sticky", top: 0, zIndex: 2, background: COLORS.head, textAlign: "right", minWidth: 90 } }, cl)), /* @__PURE__ */ React.createElement("th", { style: { ...thStyle, position: "sticky", top: 0, right: 0, zIndex: 3, background: "#1a1613", textAlign: "right", minWidth: 100, color: COLORS.amberSoft } }, "\uCD1D\uD569\uACC4"))), /* @__PURE__ */ React.createElement("tbody", null, rowLabels.map((rl) => /* @__PURE__ */ React.createElement("tr", { key: rl, style: { borderTop: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, position: "sticky", left: 0, background: COLORS.panel, fontWeight: 700 } }, rl), colLabels.map((cl) => {
+    var _a;
+    return /* @__PURE__ */ React.createElement("td", { key: cl, style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace" } }, n(((_a = matrix[rl]) == null ? void 0 : _a[cl]) || 0));
+  }), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 700, color: COLORS.amberSoft, position: "sticky", right: 0, background: "#1a1613" } }, n(rowTotals[rl]))))), /* @__PURE__ */ React.createElement("tfoot", null, /* @__PURE__ */ React.createElement("tr", { style: { borderTop: `2px solid ${COLORS.panelBorder2}` } }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, position: "sticky", left: 0, background: "#1a1613", fontWeight: 800 } }, "\uCD1D\uD569\uACC4"), colLabels.map((cl) => /* @__PURE__ */ React.createElement("td", { key: cl, style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amberSoft } }, n(colTotals[cl] || 0))), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace", fontWeight: 800, color: COLORS.amber, position: "sticky", right: 0, background: "#1a1613" } }, n(grandTotal)))))))), mainTab === "detail" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 } }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      value: search,
+      onChange: (e) => setSearch(e.target.value),
+      placeholder: "\uD488\uBAA9\uBA85 / LOT / B/L \uAC80\uC0C9",
+      style: { flex: "1 1 220px", padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.panelBorder}`, background: COLORS.panel, color: COLORS.cream, fontSize: 13 }
+    }
+  ), /* @__PURE__ */ React.createElement(HoverAxisPicker, { label: "\uC815\uB82C", value: sortKey, onChange: setSortKey, options: [["\uC720\uD1B5\uAE30\uD55C\uC784\uBC15\uC21C", "\uC720\uD1B5\uAE30\uD55C \uC784\uBC15\uC21C"], ["\uC7AC\uACE0\uC218\uB7C9\uB9CE\uC740\uC21C", "\uC7AC\uACE0\uC218\uB7C9 \uB9CE\uC740\uC21C"], ["\uC911\uB7C9\uB9CE\uC740\uC21C", "\uC911\uB7C9 \uB9CE\uC740\uC21C"]] }), /* @__PURE__ */ React.createElement("button", { onClick: exportDetailXlsx, style: { marginLeft: "auto", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${COLORS.sage}`, background: "rgba(111,148,130,0.14)", color: COLORS.sage } }, "\u2B07 \uC5D1\uC140 \uB2E4\uC6B4\uB85C\uB4DC")), /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", maxHeight: 560, overflowY: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { borderCollapse: "collapse", fontSize: 12, width: "100%" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, ["\uCC3D\uACE0", "\uD488\uBAA9\uBA85", "\uACF5\uAE09\uC0AC", "\uC7AC\uACE0\uC218\uB7C9", "\uC911\uB7C9(kg)", "\uC800\uC7A5\uC704\uCE58", "\uC720\uD1B5\uAE30\uD55C", "\uD1B5\uAD00\uC0C1\uD0DC", "LOT\uBC88\uD638"].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, style: { ...thStyle, position: "sticky", top: 0, background: COLORS.head, whiteSpace: "nowrap" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, detailSorted.map((r, i) => {
+    const d = daysUntil(r.\uC720\uD1B5\uAE30\uD55C);
+    return /* @__PURE__ */ React.createElement("tr", { key: i, style: { borderTop: `1px solid ${COLORS.panelBorder}` } }, /* @__PURE__ */ React.createElement("td", { style: tdStyle }, r.\uCC3D\uACE0\uBA85), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, r.\uD488\uBAA9\uBA85), /* @__PURE__ */ React.createElement("td", { style: tdStyle }, r.\uACF5\uAE09\uC0AC), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace" } }, n(r.\uC7AC\uACE0\uC218\uB7C9)), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, textAlign: "right", fontFamily: "ui-monospace,monospace" } }, n(r.\uC911\uB7C9_kg)), /* @__PURE__ */ React.createElement("td", { style: tdStyle }, r.\uC800\uC7A5\uC704\uCE58), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, color: expiryColor(d), fontWeight: d !== null && isWithinNineMonthsDays(d) ? 700 : 400 } }, r.\uC720\uD1B5\uAE30\uD55C || "-", " ", d !== null && isWithinNineMonthsDays(d) ? `(D${d >= 0 ? "-" + d : "+" + Math.abs(d)})` : ""), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, color: r.\uD1B5\uAD00\uC0C1\uD0DC === "\uD1B5\uAD00" ? COLORS.sage : r.\uD1B5\uAD00\uC0C1\uD0DC === "\uBBF8\uD1B5\uAD00" ? COLORS.rust : COLORS.mute } }, r.\uD1B5\uAD00\uC0C1\uD0DC || "\uBBF8\uD655\uC778"), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, fontSize: 10.5, color: COLORS.mute, whiteSpace: "nowrap" } }, r.LOT\uBC88\uD638));
+  })))))), /* @__PURE__ */ React.createElement("p", { style: { fontSize: 10.5, color: COLORS.mute, marginTop: 14, lineHeight: 1.6 } }, "\uC218\uC9D1\uC2DC\uAC01: ", db.\uC218\uC9D1\uC2DC\uAC01, " \xB7 \uACF5\uAE09\uC0AC\uB294 \uD488\uBAA9\uBA85\uC5D0\uC11C \uC790\uB3D9 \uCD94\uCD9C\uB41C \uCD94\uC815\uAC12\uC785\uB2C8\uB2E4 (\uC77C\uBD80 \uBD80\uC815\uD655\uD560 \uC218 \uC788\uC74C).")));
+}
+const thStyle = { textAlign: "left", padding: "7px 9px", fontSize: 10.5, color: "#8f857a", fontWeight: 700, borderBottom: "1px solid #2b2624" };
+const tdStyle = { padding: "6px 9px", color: "#f2ead9" };
+function SheetTab({ active, onClick, label }) {
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: { padding: "9px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: active ? `2px solid ${COLORS.amber}` : "2px solid transparent", color: active ? COLORS.amber : COLORS.mute, marginBottom: -1 } }, label);
+}
+function KpiCard({ label, value, accent, warn }) {
+  return /* @__PURE__ */ React.createElement("div", { style: { background: COLORS.panel, border: `1px solid ${warn ? COLORS.rust : COLORS.panelBorder}`, borderRadius: 10, padding: "12px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: COLORS.mute, marginBottom: 5 } }, label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 19, fontWeight: 800, color: accent, fontFamily: "ui-monospace,monospace" } }, value));
+}
+function ChipGroup({ label, options, value, onChange }) {
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute, paddingLeft: 4 } }, label), options.map((o) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: o,
+      onClick: () => onChange(o),
+      style: {
+        padding: "4px 10px",
+        borderRadius: 6,
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: "pointer",
+        border: "none",
+        background: o === value ? COLORS.amber : "transparent",
+        color: o === value ? "#1a1512" : COLORS.mute
+      }
+    },
+    o
+  )));
+}
+function HoverAxisPicker({ label, value, onChange, options }) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const enter = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    timer.current = setTimeout(() => setOpen(false), 150);
+  };
+  const found = options.find(([v]) => v === value);
+  const currentLabel = found ? found[1] : value;
+  return /* @__PURE__ */ React.createElement("div", { onMouseEnter: enter, onMouseLeave: leave, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "6px 10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, fontWeight: 700, color: COLORS.amber } }, currentLabel), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: COLORS.mute } }, "\u25BE")), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 6, minWidth: 140, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" } }, options.map(([v, l]) => /* @__PURE__ */ React.createElement("button", { key: v, onClick: () => {
+    onChange(v);
+    setOpen(false);
+  }, style: { display: "block", width: "100%", textAlign: "left", padding: "6px 10px", borderRadius: 6, fontSize: 12.5, cursor: "pointer", border: "none", background: v === value ? "rgba(217,139,63,0.18)" : "transparent", color: v === value ? COLORS.amberSoft : COLORS.cream, whiteSpace: "nowrap" } }, l))));
+}
+function HoverMultiPicker({ label, options, selected, onToggle, onSelectAll, onClear }) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const enter = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    timer.current = setTimeout(() => setOpen(false), 150);
+  };
+  return /* @__PURE__ */ React.createElement("div", { onMouseEnter: enter, onMouseLeave: leave, style: { position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, background: COLORS.panel, border: `1px solid ${selected.length ? COLORS.amber : COLORS.panelBorder}`, borderRadius: 8, padding: "6px 12px", color: selected.length ? COLORS.amber : COLORS.mute, fontSize: 12.5, fontWeight: 600 } }, label, " ", selected.length ? `(${selected.length})` : "\uC804\uCCB4", " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, "\u25BE")), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "100%", left: 0, zIndex: 20, background: "#141211", border: `1px solid ${COLORS.panelBorder2}`, borderRadius: 10, padding: 10, width: 240, maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.45)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: COLORS.mute } }, options.length, "\uAC1C \uC635\uC158"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { onClick: onSelectAll, style: { fontSize: 11, color: COLORS.sage, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uC804\uCCB4 \uC120\uD0DD"), /* @__PURE__ */ React.createElement("button", { onClick: onClear, style: { fontSize: 11, color: COLORS.rust, background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "\uCD08\uAE30\uD654"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5 } }, options.map((o) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: o,
+      onClick: () => onToggle(o),
+      style: {
+        padding: "4px 9px",
+        borderRadius: 6,
+        fontSize: 11.5,
+        cursor: "pointer",
+        border: `1px solid ${selected.includes(o) ? COLORS.amber : COLORS.panelBorder2}`,
+        background: selected.includes(o) ? "rgba(217,139,63,0.18)" : "transparent",
+        color: selected.includes(o) ? COLORS.amberSoft : COLORS.mute
+      }
+    },
+    o
+  )))));
+}
+
+  return WarehouseDashboardApp;
+})();
+
+const { useState } = React;
+function ShellApp() {
+  const [view, setView] = useState(() => window.location.hash === "#warehouse" ? "warehouse" : "quarantine");
+  const selectView = (v) => {
+    setView(v);
+    window.location.hash = v;
+  };
+  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", minHeight: "100vh", background: "#151312" } }, /* @__PURE__ */ React.createElement("div", { style: {
+    width: 210,
+    flexShrink: 0,
+    background: "#141110",
+    borderRight: "1px solid #2b2624",
+    padding: "20px 14px",
+    position: "sticky",
+    top: 0,
+    height: "100vh",
+    overflowY: "auto"
+  } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 800, color: "#f2ead9", marginBottom: 2, letterSpacing: "-0.01em" } }, "\u{1F3E2} \uD1B5\uD569 \uB300\uC2DC\uBCF4\uB4DC"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#8f857a", marginBottom: 20 } }, "\uD68C\uC0AC \uB0B4\uBD80 \uD1B5\uD569 \uC870\uD68C"), /* @__PURE__ */ React.createElement(
+    NavItem,
+    {
+      active: view === "quarantine",
+      onClick: () => selectView("quarantine"),
+      icon: "\u{1F4E6}",
+      label: "\uC218\uC785\uAC80\uC5ED \uD604\uD669"
+    }
+  ), /* @__PURE__ */ React.createElement(
+    NavItem,
+    {
+      active: view === "warehouse",
+      onClick: () => selectView("warehouse"),
+      icon: "\u{1F3ED}",
+      label: "\uC885\uD569\uCC3D\uACE0\uD604\uD669"
+    }
+  )), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, view === "quarantine" && /* @__PURE__ */ React.createElement(QuarantineApp, null), view === "warehouse" && /* @__PURE__ */ React.createElement(WarehouseDashboardApp, null)));
+}
+function NavItem({ active, onClick, icon, label }) {
+  return /* @__PURE__ */ React.createElement("button", { onClick, style: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    width: "100%",
+    textAlign: "left",
+    padding: "10px 12px",
+    borderRadius: 8,
+    marginBottom: 6,
+    cursor: "pointer",
+    border: "none",
+    fontSize: 13,
+    fontWeight: 700,
+    background: active ? "rgba(217,139,63,0.16)" : "transparent",
+    color: active ? "#d98b3f" : "#8f857a"
+  } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, icon), " ", label);
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(ShellApp));
+
+</script>
+</body>
+</html>
