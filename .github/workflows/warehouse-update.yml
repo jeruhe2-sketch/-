@@ -32,10 +32,14 @@ jobs:
             curl -v --max-time 15 -c /tmp/cookies.txt -b /tmp/cookies.txt -L \
               "http://211.239.173.91:8080/dchdst/" 2>&1
             echo ""
-            echo "=== [같은 쿠키로] login.do POST 응답 (실제 계정 사용) ==="
+            echo "=== [같은 쿠키로] login.do POST 응답 (실제 계정 + Referer/Origin 헤더 추가) ==="
             curl -v --max-time 15 -c /tmp/cookies.txt -b /tmp/cookies.txt \
               -X POST "http://211.239.173.91:8080/dchdst/login.do" \
               -H "Content-Type: application/x-www-form-urlencoded" \
+              -H "Referer: http://211.239.173.91:8080/dchdst/login.do" \
+              -H "Origin: http://211.239.173.91:8080" \
+              -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8" \
+              -H "Accept-Language: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7" \
               --data-urlencode "id=${NWILL_DAECHEONG_UNCLEARED_ID}" \
               --data-urlencode "pw=${NWILL_DAECHEONG_UNCLEARED_PW}" \
               --data-urlencode "wms_cd=1B6" --data-urlencode "co_stel=031-761-3002" 2>&1
