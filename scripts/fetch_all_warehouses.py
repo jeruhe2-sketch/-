@@ -107,6 +107,28 @@ WAREHOUSE_CONFIGS = [
 ]
 
 
+def _to_number(text: str):
+    """
+    "1,272" / "23,010.31" / "18.09KG" 처럼 천단위 콤마나 단위(KG 등)가 붙은
+    셀 텍스트에서 숫자만 뽑아 변환. 빈 값/파싱 불가능한 값은 0으로 처리
+    (대시보드가 숫자 필드로 합산하기 때문에 문자열이 섞이면 NaN이 발생한다).
+    """
+    if text is None:
+        return 0
+    cleaned = str(text).replace(",", "").strip()
+    if not cleaned:
+        return 0
+    match = re.match(r"-?\d+(\.\d+)?", cleaned)
+    if not match:
+        return 0
+    val = float(match.group())
+    return int(val) if val.is_integer() else val
+
+
+# 대시보드가 숫자로 계산/정렬하는 필드들 (콤마 제거 + 숫자 변환 필요)
+NUMERIC_FIELDS = ["재고수량", "중량_kg", "단위중량", "허용수량", "적재수량", "PLT수량"]
+
+
 def parse_stock_table(html: str, 창고명: str) -> list:
     """
     재고조회(셀분리) 결과 테이블 파싱.
@@ -158,6 +180,10 @@ def parse_stock_table(html: str, 창고명: str) -> list:
 
         pass_raw = record.pop("통관구분", "").strip()
         record["통관상태"] = pass_raw if pass_raw else None  # 후처리 단계에서 계정 기본값 적용
+
+        for field in NUMERIC_FIELDS:
+            if field in record:
+                record[field] = _to_number(record[field])
 
         rows.append(record)
 
