@@ -1,5 +1,5 @@
 === GitHub Actions 러너의 공인 IP ===
-172.171.7.193
+52.234.41.64
 === [쿠키유지] 대청냉장 login.do GET (로그인폼 원본) ===
 * WARNING: failed to open cookie file "/tmp/cookies.txt"
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -12,34 +12,34 @@
 > Accept: */*
 > 
 < HTTP/1.1 302 
-* Added cookie JSESSIONID="0253870FD28C4791C03611CDC973ACDF" for domain 211.239.173.91, path /dchdst, expire 0
-< Set-Cookie: JSESSIONID=0253870FD28C4791C03611CDC973ACDF; Path=/dchdst; HttpOnly
+* Added cookie JSESSIONID="9D1F0330300149BBD7797FAEBF16AE86" for domain 211.239.173.91, path /dchdst, expire 0
+< Set-Cookie: JSESSIONID=9D1F0330300149BBD7797FAEBF16AE86; Path=/dchdst; HttpOnly
 < Location: login.do
 < Content-Type: text/html;charset=UTF-8
 < Content-Length: 0
-< Date: Sat, 22 Aug 2026 10:57:50 GMT
+< Date: Sat, 22 Aug 2026 10:59:29 GMT
 < 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
 * Connection #0 to host 211.239.173.91 left intact
 * Issue another request to this URL: 'http://211.239.173.91:8080/dchdst/login.do'
-* Found bundle for host: 0x558096256a60 [serially]
+* Found bundle for host: 0x55ec93abaa60 [serially]
 * Can not multiplex, even if we wanted to
 * Re-using existing connection with host 211.239.173.91
 > GET /dchdst/login.do HTTP/1.1
 > Host: 211.239.173.91:8080
 > User-Agent: curl/8.5.0
 > Accept: */*
-> Cookie: JSESSIONID=0253870FD28C4791C03611CDC973ACDF
+> Cookie: JSESSIONID=9D1F0330300149BBD7797FAEBF16AE86
 > 
 < HTTP/1.1 200 
 < Cache-Control: no-store
 < Content-Type: text/html;charset=UTF-8
 < Content-Language: ko-KR
 < Transfer-Encoding: chunked
-< Date: Sat, 22 Aug 2026 10:57:50 GMT
+< Date: Sat, 22 Aug 2026 10:59:29 GMT
 < 
 { [1251 bytes data]
-100  1251    0  1251    0     0   2297      0 --:--:-- --:--:-- --:--:--  2297
+
 
 
 
@@ -451,7 +451,7 @@
 	        
 <!-- https 사용유무 -->
 <script type="text/javascript">
-    var r_ip  = "172.171.7.193";
+    var r_ip  = "52.234.41.64";
     var ssl = "null";	
     var r_domain = window.location.href;	
     var protocol = window.location.protocol ;	
@@ -689,11 +689,11 @@
     <script src="js/plugins/sweetalert/sweetalert.min.js"></script>    
 	
     <!-- Jquery Validate -->
-    <script src="js/plugins/validate/jquery.validate.min.js"></script>    
+    <s100 17619    0 17619    0     0  20664      0 --:--:-- --:--:-- --:--:-- 20664cript src="js/plugins/validate/jquery.validate.min.js"></script>    
 
 	<!-- https 사용유무 -->
 	<script type="text/javascript">
-		var r_ip  = "172.171.7.193";
+		var r_ip  = "52.234.41.64";
 		var ssl = "null";	
 		var r_domain = window.location.href;	
 		var protocol = window.location.protocol ;	
@@ -791,9 +791,9 @@
  			            html: true
  			        });
      			    $("#dpw").addClass("has-error");
- 100 23248    0 23248    0     0  22302      0 --:--:--  0:00:01 --:--:-- 44259
+   100 23246    0 23246    0     0  27250      0 --:--:-- --:--:-- --:--:-- 5495k
 * Connection #0 to host 211.239.173.91 left intact
-                  	return false;
+                	return false;
             	 }  
             	 if($("#pw").val().indexOf("\:") >= 0 ){	     
  			        swal({
@@ -872,7 +872,7 @@
 
 </html>
 
-=== [같은 쿠키로] login.do POST 응답 ===
+=== [같은 쿠키로] login.do POST 응답 (실제 계정 사용) ===
 Note: Unnecessary use of -X or --request, POST is already inferred.
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
@@ -882,20 +882,20 @@ Note: Unnecessary use of -X or --request, POST is already inferred.
 > Host: 211.239.173.91:8080
 > User-Agent: curl/8.5.0
 > Accept: */*
-> Cookie: JSESSIONID=0253870FD28C4791C03611CDC973ACDF
+> Cookie: JSESSIONID=9D1F0330300149BBD7797FAEBF16AE86
 > Content-Type: application/x-www-form-urlencoded
-> Content-Length: 47
+> Content-Length: 51
 > 
-} [47 bytes data]
+} [51 bytes data]
 < HTTP/1.1 404 
 < Cache-Control: no-store
 < Content-Type: text/html;charset=EUC-KR
 < Content-Language: ko-KR
 < Content-Length: 1121
-< Date: Sat, 22 Aug 2026 10:57:52 GMT
+< Date: Sat, 22 Aug 2026 10:59:29 GMT
 < 
 { [1121 bytes data]
-100  1168  100  1121  100    47   3193    133 --:--:-- --:--:-- --:--:--  3327
+100  1172  100  1121  100    51   3942    179 --:--:-- --:--:-- --:--:--  4126
 * Connection #0 to host 211.239.173.91 left intact
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
