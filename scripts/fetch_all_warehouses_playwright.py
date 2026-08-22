@@ -123,8 +123,13 @@ def main():
         print("모든 신규 창고 수집이 실패하여 기존 데이터를 유지합니다.", file=sys.stderr)
         sys.exit(1)
 
-    collected_warehouse_names = {cfg["창고명"] for cfg in WAREHOUSE_CONFIGS}
-    kept_rows = [r for r in existing_rows if r.get("창고명") not in collected_warehouse_names]
+    # 버그 수정: "창고명"만 기준으로 지우면, 같은 창고의 다른 통관상태(예: 대청냉장/통관)까지
+    # 통째로 사라진다. 이번에 실제로 수집된 (창고명, 통관상태) 조합만 정확히 교체한다.
+    replace_keys = {(r.get("창고명"), r.get("통관상태")) for r in all_new_rows}
+    kept_rows = [
+        r for r in existing_rows
+        if (r.get("창고명"), r.get("통관상태")) not in replace_keys
+    ]
     merged_rows = kept_rows + all_new_rows
 
     output = {
