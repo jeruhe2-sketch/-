@@ -99,6 +99,14 @@ WAREHOUSE_CONFIGS = [
 ]
 
 
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+}
+
+
 def login(session: requests.Session, cfg: dict) -> None:
     """로그인 수행. 실패 시 예외 발생."""
     login_id = os.environ.get(cfg["id_env"])
@@ -109,13 +117,23 @@ def login(session: requests.Session, cfg: dict) -> None:
             "GitHub Secrets 등록 여부를 확인하세요."
         )
 
+    # 세션 없이 바로 login.do 를 호출하면 404가 나는 서버가 있어서,
+    # 브라우저처럼 먼저 메인 페이지를 한 번 방문해 세션 쿠키를 확보한다.
+    session.headers.update(HEADERS)
+    base = cfg["base_url"].rstrip("/")
+    warmup_resp = session.get(f"{base}/", timeout=30, headers={"Referer": base + "/"})
+    warmup_resp.raise_for_status()
+
     payload = {
         "id": login_id,
         "pw": login_pw,
         "wms_cd": cfg["wms_cd"],
         "co_stel": cfg["co_stel"],
     }
-    resp = session.post(cfg["login_url"], data=payload, timeout=30)
+    resp = session.post(
+        cfg["login_url"], data=payload, timeout=30,
+        headers={"Referer": f"{base}/"},
+    )
     resp.raise_for_status()
 
     # 로그인 성공 시 메인/메뉴 화면에는 반드시 "logout.do" 링크가 존재한다.
