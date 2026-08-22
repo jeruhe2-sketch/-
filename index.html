@@ -643,14 +643,24 @@ function parseAccItem(품목명) {
   if (normalized === "백립") normalized = "빽립";
   return { base, normalized, grade, est };
 }
-// 축종(소/돼지/닭/염소) 분류: 품목명 텍스트 키워드 기반 추정치.
-// 접두어(돈/닭/우)를 우선 보고, 접두어가 없는 경우 흔한 커팅명으로 추정한다.
-// (부정확할 수 있음 - 공급사 자동추출과 같은 성격의 추정 로직)
-function classifyAnimal(품목명) {
+// 공급사별 축종 매핑 - 커팅명보다 신뢰도 높음 (scripts/fetch_all_warehouses.py의
+// SUPPLIER_ANIMAL_MAP과 동일하게 유지할 것)
+const SUPPLIER_ANIMAL_MAP = {
+  "ACC": "소", "TEYS": "소", "DARLING DOWNS": "소", "MAFRIGES": "소", "PATEL": "소",
+  "AGROSUPER": "돼지", "SEABOARD": "돼지", "DEWAELE": "돼지", "INCARLOPSA": "돼지",
+  "ALEJANDRO": "돼지", "RIVASAM": "돼지", "SMITHFIELD": "돼지", "FRIBIN": "돼지",
+  "NV": "돼지", "BAUCELLS": "돼지", "OLYMEL": "돼지", "MARCHER": "돼지",
+  "SADIA": "닭", "SEARA": "닭", "PERDIGAO": "닭", "LAR": "닭", "QAF": "닭"
+};
+// 축종(소/돼지/닭/염소) 분류: 공급사가 알려져 있으면 그것을 최우선으로 쓰고
+// (커팅명만으로는 애매한 경우가 많음 - 예: DEWAELE의 "앞사태"는 돼지 부위),
+// 모르는 공급사면 품목명 텍스트 키워드로 추정한다. (부정확할 수 있음)
+function classifyAnimal(품목명, 공급사) {
+  if (공급사 && SUPPLIER_ANIMAL_MAP[공급사]) return SUPPLIER_ANIMAL_MAP[공급사];
   const name = 품목명 || "";
   if (/염소/.test(name)) return "염소";
   if (/^\(?돈/.test(name)) return "돼지";
-  if (/항정살|삼겹살|가브리|갈매기살|시트밸리|등갈비|전지|후지|돈가스/.test(name)) return "돼지";
+  if (/항정살|삼겹살|가[브부]리|갈매기살|시트밸리|등갈비|전지|후지|돈가스/.test(name)) return "돼지";
   if (/^\(?닭|^\(?계|계육|장각/.test(name)) return "닭";
   if (/^\(?우/.test(name)) return "소";
   if (/갈비|양지|차돌|채끝|척갈비|볼라전각|빽립|설도|우둔|홍두깨|토시|안창|제비추리|아롱사태|업진|알목심|스페어립/.test(name)) return "소";
@@ -713,7 +723,7 @@ function WarehouseDashboardApp() {
   return /* @__PURE__ */ React.createElement(Dashboard, { db, history, onRefresh: () => setReloadKey((k) => k + 1), refreshing: loading });
 }
 function Dashboard({ db, history, onRefresh, refreshing }) {
-  const ROWS = useMemo(() => db.\uB370\uC774\uD130.map((r) => ({ ...r, \uCD95\uC885: classifyAnimal(r.\uD488\uBAA9\uBA85) })), [db]);
+  const ROWS = useMemo(() => db.\uB370\uC774\uD130.map((r) => ({ ...r, \uCD95\uC885: classifyAnimal(r.\uD488\uBAA9\uBA85, r.\uACF5\uAE09\uC0AC) })), [db]);
   const [mainTab, setMainTab] = useState("summary");
   const [warehouseFilter, setWarehouseFilter] = useState([]);
   const [supplierFilter, setSupplierFilter] = useState([]);

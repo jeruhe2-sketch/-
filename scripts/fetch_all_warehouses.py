@@ -39,11 +39,23 @@ KNOWN_SUPPLIERS = [
     "ECT", "DEWAELE", "AFFCO", "DARLING DOWNS", "FAENADORA SUPER",
     "KAMOURASKA", "EXC", "NATIONAL", "LORIENTE", "GREENIA", "LORFOOD",
     "PERDIGAO", "SADIA", "DUMECO", "LAR", "QAF",
+    "NV", "A/S", "BAUCELLS",
 ]
-# 길이가 짧아서 오탐 위험이 큰 것들은 단어경계 정규식으로만 매칭 (A/S 등)
+# 공급사명 표기가 대소문자 섞여있는 경우(예: "Fribin")도 매칭되도록 대소문자 무시.
+# \b 대신 (?<![A-Za-z0-9])...(?![A-Za-z0-9]) 를 쓰는 이유: "ACC_상이품"처럼 뒤에
+# 언더스코어(_)가 붙으면 \b는 _를 단어문자로 취급해서 경계로 인식 못하는 문제가 있었음.
 _SUPPLIER_PATTERN = re.compile(
-    r"\b(" + "|".join(re.escape(s) for s in sorted(KNOWN_SUPPLIERS, key=len, reverse=True)) + r")\b"
+    r"(?<![A-Za-z0-9])(" + "|".join(re.escape(s) for s in sorted(KNOWN_SUPPLIERS, key=len, reverse=True)) + r")(?![A-Za-z0-9])",
+    re.IGNORECASE,
 )
+# 같은 공급사를 가리키는 다른 표기(내부 약어, 한글 음역 등). 매칭 후 이 이름으로 통일.
+SUPPLIER_ALIASES = {
+    "A/S": "AGROSUPER",
+}
+# 품목명에 라틴 문자 대신 한글 음역으로만 적힌 경우 (예: "닭다리정육-사디아")
+KOREAN_SUPPLIER_ALIASES = {
+    "사디아": "SADIA",
+}
 
 
 def _looks_like_code(text: str) -> bool:
@@ -54,9 +66,14 @@ def _looks_like_code(text: str) -> bool:
 
 def extract_supplier(품목명: str, raw_brand: str) -> str:
     """품목명에서 알려진 공급사명을 우선 찾고, 없으면 브랜드 컬럼값(코드성 문자열 제외)으로 폴백."""
-    match = _SUPPLIER_PATTERN.search(품목명 or "")
+    품목명 = 품목명 or ""
+    match = _SUPPLIER_PATTERN.search(품목명)
     if match:
-        return match.group(1)
+        canonical = match.group(1).upper()
+        return SUPPLIER_ALIASES.get(canonical, canonical)
+    for kor, canonical in KOREAN_SUPPLIER_ALIASES.items():
+        if kor in 품목명:
+            return canonical
     raw_brand = (raw_brand or "").strip()
     if raw_brand and not _looks_like_code(raw_brand):
         return raw_brand
@@ -249,11 +266,51 @@ def apply_default_customs_status(rows: list, cfg: dict) -> None:
             r["통관상태"] = default_status
 
 
-def classify_animal(품목명: str) -> str:
+# 공급사별 축종 매핑. 공급사는 보통 특정 축종 전문이라 커팅명보다 신뢰도가 높음.
+# (확실한 근거 있는 것만 등록 - 애매한 공급사는 넣지 않고 키워드 추정에 맡김)
+SUPPLIER_ANIMAL_MAP = {
+    # 소
+    "ACC": "소",
+    "TEYS": "소",
+    "DARLING DOWNS": "소",
+    "MAFRIGES": "소",
+    "PATEL": "소",
+    # 돼지
+    "AGROSUPER": "돼지",
+    "SEABOARD": "돼지",
+    "DEWAELE": "돼지",
+    "INCARLOPSA": "돼지",
+    "ALEJANDRO": "돼지",
+    "RIVASAM": "돼지",
+    "SMITHFIELD": "돼지",
+    "FRIBIN": "돼지",
+    "NV": "돼지",
+    "BAUCELLS": "돼지",
+    "OLYMEL": "돼지",
+    "MARCHER": "돼지",
+    # 닭
+    "SADIA": "닭",
+    "SEARA": "닭",
+    "PERDIGAO": "닭",
+    "LAR": "닭",
+    "QAF": "닭",
+}
+
+
+def classify_animal(품목명: str, 공급사: str = None) -> str:
     """
     축종(소/돼지/닭/염소) 추정. index.html의 classifyAnimal()과 동일한 규칙
     (품목명 텍스트 키워드 기반 추정치, 완벽하지 않을 수 있음).
+
+    커팅명만으로는 애매한 경우가 많다 (예: "앞사태"는 보통 소 부위지만 DEWAELE는
+    돼지 앞사태로 씀, "가부리"는 SEABOARD/AGROSUPER 계열에서 돼지 부위임).
+    반면 공급사는 거의 항상 특정 축종 전문이라 훨씬 신뢰도가 높으므로,
+    공급사가 알려진 경우 그것을 최우선으로 쓰고, 모르는 공급사일 때만
+    품목명 키워드로 추정한다.
     """
+    if 공급사 and 공급사 in SUPPLIER_ANIMAL_MAP:
+        return SUPPLIER_ANIMAL_MAP[공급사]
+
     name = 품목명 or ""
     if re.search(r"염소", name):
         return "염소"
@@ -292,7 +349,7 @@ def append_daily_history(all_rows: list) -> None:
 
     totals = {}
     for r in all_rows:
-        key = (r.get("창고명"), classify_animal(r.get("품목명", "")))
+        key = (r.get("창고명"), classify_animal(r.get("품목명", ""), r.get("공급사")))
         bucket = totals.setdefault(key, {"재고수량": 0, "중량_kg": 0})
         bucket["재고수량"] += r.get("재고수량", 0) or 0
         bucket["중량_kg"] += r.get("중량_kg", 0) or 0
