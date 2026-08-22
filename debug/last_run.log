@@ -1,5 +1,0 @@
-[오류] 대청냉장/미통관 수집 실패: 404 Client Error:  for url: http://211.239.173.91:8080/dchdst/login.do
-[오류] 신우냉장/미통관 수집 실패: 404 Client Error:  for url: http://nwill.net:8080/swdst/login.do?nav_num=00
-[오류] 한라냉장/통관 수집 실패: 404 Client Error:  for url: http://211.239.173.91:8080/hlgdst/login.do
-[오류] 한라냉장/미통관 수집 실패: 404 Client Error:  for url: http://211.239.173.91:8080/hlgdst/login.do
-모든 신규 창고 수집이 실패하여 기존 데이터를 유지합니다.
