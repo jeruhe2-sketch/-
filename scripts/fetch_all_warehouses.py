@@ -118,6 +118,13 @@ WAREHOUSE_CONFIGS = [
     {
         "창고명": "신우냉장",
         "base_url": "http://nwill.net:8080/swdst",
+        "id_env": "NWILL_SINWOO_LIVESTOCK_UNCLEARED_ID",
+        "pw_env": "NWILL_SINWOO_LIVESTOCK_UNCLEARED_PW",
+        "계정용도": "미통관(축산물)",
+    },
+    {
+        "창고명": "신우냉장",
+        "base_url": "http://nwill.net:8080/swdst",
         "id_env": "NWILL_SINWOO_POULTRY_CLEARED_ID",
         "pw_env": "NWILL_SINWOO_POULTRY_CLEARED_PW",
         "계정용도": "통관(계육)",
