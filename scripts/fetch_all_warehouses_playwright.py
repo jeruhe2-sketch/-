@@ -28,6 +28,7 @@ from fetch_all_warehouses import (
     parse_stock_table,
     apply_default_customs_status,
     load_existing,
+    append_daily_history,
 )
 
 
@@ -139,6 +140,8 @@ def main():
 
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
+
+    append_daily_history(merged_rows)
 
     print(f"완료: 총 {len(merged_rows)}건 저장 ({OUTPUT_PATH})")
 

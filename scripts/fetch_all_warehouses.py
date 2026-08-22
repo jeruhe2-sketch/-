@@ -19,6 +19,7 @@
 import json
 import os
 import re
+from datetime import datetime
 
 OUTPUT_PATH = "data/warehouse_stock.json"
 
@@ -239,6 +240,67 @@ def apply_default_customs_status(rows: list, cfg: dict) -> None:
     for r in rows:
         if not r.get("통관상태"):
             r["통관상태"] = default_status
+
+
+def classify_animal(품목명: str) -> str:
+    """
+    축종(소/돼지/닭/염소) 추정. index.html의 classifyAnimal()과 동일한 규칙
+    (품목명 텍스트 키워드 기반 추정치, 완벽하지 않을 수 있음).
+    """
+    name = 품목명 or ""
+    if re.search(r"염소", name):
+        return "염소"
+    if re.match(r"^\(?돈", name):
+        return "돼지"
+    if re.search(r"항정살|삼겹살|가브리|갈매기살|시트밸리|등갈비|전지|후지|돈가스", name):
+        return "돼지"
+    if re.match(r"^\(?닭", name) or re.match(r"^\(?계", name) or re.search(r"계육|장각", name):
+        return "닭"
+    if re.match(r"^\(?우", name):
+        return "소"
+    if re.search(r"갈비|양지|차돌|채끝|척갈비|볼라전각|빽립|설도|우둔|홍두깨|토시|안창|제비추리|아롱사태|업진|알목심|스페어립", name):
+        return "소"
+    return "미분류"
+
+
+HISTORY_PATH = "data/warehouse_history.json"
+
+
+def append_daily_history(all_rows: list) -> None:
+    """
+    창고별/축종별 하루치 요약(재고수량/중량_kg 합계)을 별도의 가벼운 이력
+    파일에 누적한다. 원본 데이터(행 단위 전체)를 매일 그대로 쌓으면 1년 뒤
+    수만~십만 행이 되어 느려질 수 있어서, 요약값만 남기는 방식으로 설계.
+    같은 날짜에 여러 번 실행되면 그날 기록을 덮어써서 중복 누적을 막는다.
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    if os.path.exists(HISTORY_PATH):
+        with open(HISTORY_PATH, encoding="utf-8") as f:
+            history = json.load(f)
+    else:
+        history = {"기록": []}
+
+    history["기록"] = [h for h in history["기록"] if h.get("날짜") != today]
+
+    totals = {}
+    for r in all_rows:
+        key = (r.get("창고명"), classify_animal(r.get("품목명", "")))
+        bucket = totals.setdefault(key, {"재고수량": 0, "중량_kg": 0})
+        bucket["재고수량"] += r.get("재고수량", 0) or 0
+        bucket["중량_kg"] += r.get("중량_kg", 0) or 0
+
+    for (창고명, 축종), vals in totals.items():
+        history["기록"].append({
+            "날짜": today,
+            "창고명": 창고명,
+            "축종": 축종,
+            "재고수량": vals["재고수량"],
+            "중량_kg": round(vals["중량_kg"], 2),
+        })
+
+    with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
 
 
 def load_existing() -> dict:
