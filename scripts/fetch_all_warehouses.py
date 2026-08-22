@@ -47,6 +47,7 @@ WAREHOUSE_CONFIGS = [
     {
         "창고명": "대청냉장",
         "base_url": "http://211.239.173.91:8080/dchdst",
+        "login_url": "http://211.239.173.91:8080/dchdst/login.do",
         "wms_cd": "1B6",
         "co_stel": "031-761-3002",
         "scustcd": "23120",
@@ -55,18 +56,46 @@ WAREHOUSE_CONFIGS = [
         "pw_env": "NWILL_DAECHEONG_UNCLEARED_PW",
         "계정용도": "미통관",  # 참고용 라벨. 실제 통관상태는 테이블 컬럼값 사용.
     },
-    # 아래는 준비되는 대로 추가 (동일 스키마, base_url/wms_cd/co_stel/scustcd만 교체)
-    # {
-    #     "창고명": "대청냉장",
-    #     "base_url": "http://211.239.173.91:8080/dchdst",
-    #     "wms_cd": "1B6",
-    #     "co_stel": "031-761-3002",
-    #     "scustcd": "23120",
-    #     "scmdept": "00",
-    #     "id_env": "NWILL_DAECHEONG_CLEARED_ID",
-    #     "pw_env": "NWILL_DAECHEONG_CLEARED_PW",
-    #     "계정용도": "통관",
-    # },
+    {
+        "창고명": "신우냉장",
+        "base_url": "http://nwill.net:8080/swdst",
+        "login_url": "http://nwill.net:8080/swdst/login.do?nav_num=00",
+        "wms_cd": "104",
+        "co_stel": "031-764-8107",
+        # scustcd는 대청과 다를 수 있음 (미확인 - 로그인 후 페이지에서 확인 필요)
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_SINWOO_UNCLEARED_ID",
+        "pw_env": "NWILL_SINWOO_UNCLEARED_PW",
+        "계정용도": "미통관",
+    },
+    {
+        "창고명": "한라냉장",
+        "base_url": "http://211.239.173.91:8080/hlgdst",
+        "login_url": "http://211.239.173.91:8080/hlgdst/login.do",
+        "wms_cd": "176",
+        "co_stel": "031-8027-4716~7",
+        # scustcd 미확인 - 로그인 후 페이지에서 확인 필요
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_HALLA_CLEARED_ID",
+        "pw_env": "NWILL_HALLA_CLEARED_PW",
+        "계정용도": "통관",
+    },
+    {
+        "창고명": "한라냉장",
+        "base_url": "http://211.239.173.91:8080/hlgdst",
+        "login_url": "http://211.239.173.91:8080/hlgdst/login.do",
+        "wms_cd": "176",
+        "co_stel": "031-8027-4716~7",
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_HALLA_UNCLEARED_ID",
+        "pw_env": "NWILL_HALLA_UNCLEARED_PW",
+        "계정용도": "미통관",
+    },
+    # 대청/신우 "통관" 계정은 기존에 수동으로 수집하던 계정 정보가 아직 없어서 보류.
+    # 계정 정보 주어지면 위와 동일한 형태로 추가.
 ]
 
 
@@ -86,7 +115,7 @@ def login(session: requests.Session, cfg: dict) -> None:
         "wms_cd": cfg["wms_cd"],
         "co_stel": cfg["co_stel"],
     }
-    resp = session.post(f"{cfg['base_url']}/login.do", data=payload, timeout=30)
+    resp = session.post(cfg["login_url"], data=payload, timeout=30)
     resp.raise_for_status()
 
     # 로그인 성공 시 메인/메뉴 화면에는 반드시 "logout.do" 링크가 존재한다.
@@ -98,14 +127,39 @@ def login(session: requests.Session, cfg: dict) -> None:
         )
 
 
+def get_hidden_search_fields(session: requests.Session, cfg: dict) -> dict:
+    """
+    재고조회(셀분리) 검색폼을 GET으로 먼저 받아서, 서버가 로그인 계정에 맞춰
+    자동으로 채워놓은 hidden 필드(scustcd, scmdept, swms_cd, nav_num)를 그대로 읽어온다.
+    창고마다 계정 고유값이 달라서 하드코딩하지 않기 위함.
+    """
+    resp = session.get(f"{cfg['base_url']}/rtv_stock02.do?nav_num=0107", timeout=30)
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    form = soup.select_one("form[action='rtv_stock02.do']")
+    hidden = {}
+    if form:
+        for inp in form.select("input[type=hidden]"):
+            name = inp.get("name")
+            if name:
+                hidden[name] = inp.get("value", "")
+
+    # 혹시 폼을 못 찾으면 설정에 있는 값으로 폴백 (구조가 다를 가능성 대비)
+    hidden.setdefault("scustcd", cfg.get("scustcd", ""))
+    hidden.setdefault("scmdept", cfg.get("scmdept", "00"))
+    hidden.setdefault("swms_cd", "")
+    hidden.setdefault("nav_num", "0107")
+    return hidden
+
+
 def fetch_stock_html(session: requests.Session, cfg: dict) -> str:
     """재고조회(셀분리) 조회 실행, 원본 HTML 반환."""
+    hidden_fields = get_hidden_search_fields(session, cfg)
+
     today = datetime.now().strftime("%Y%m%d")
     payload = {
-        "scustcd": cfg["scustcd"],
-        "scmdept": cfg["scmdept"],
-        "swms_cd": "",
-        "nav_num": "0107",
+        **hidden_fields,
         "won_pmcode": "",
         "pmname": "",
         "blno": "",
