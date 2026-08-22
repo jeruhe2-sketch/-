@@ -73,11 +73,14 @@ def fetch_one_with_browser(playwright, cfg: dict) -> list:
         )
 
         today = datetime.now().strftime("%Y%m%d")
-        # 통관구분을 "전체"로, 재고기준일자를 오늘로 설정 후 조회
+        # 통관구분을 "전체"로 설정. 재고기준일자(dt)는 사이트에 따라 readonly인 경우가 있는데,
+        # 그럴 때는 이미 오늘 날짜로 기본 채워져 있으므로 건드리지 않고 넘어간다.
         page.select_option("select[name='pass_fg']", "*")
         date_input = page.locator("input[name='dt']")
-        date_input.fill("")
-        date_input.fill(today)
+        is_readonly = date_input.get_attribute("readonly") is not None
+        if not is_readonly:
+            date_input.fill("")
+            date_input.fill(today)
 
         with page.expect_navigation(wait_until="networkidle", timeout=30000):
             page.click("button[type='submit']:has-text('조회')")
