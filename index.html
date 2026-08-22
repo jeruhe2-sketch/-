@@ -933,7 +933,7 @@ function ShellApp() {
       icon: "\u{1F3ED}",
       label: "\uC885\uD569\uCC3D\uACE0\uD604\uD669"
     }
-  ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, view === "quarantine" && /* @__PURE__ */ React.createElement(QuarantineApp, null), view === "warehouse" && /* @__PURE__ */ React.createElement(WarehousePasswordGate, null, /* @__PURE__ */ React.createElement(WarehouseDashboardApp, null))));
+  ))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, view === "quarantine" && /* @__PURE__ */ React.createElement(QuarantineApp, null), view === "warehouse" && /* @__PURE__ */ React.createElement(WarehouseDashboardApp, null)));
 }
 function WarehousePasswordGate({ children }) {
   const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem("warehouse_unlocked") === "1");
