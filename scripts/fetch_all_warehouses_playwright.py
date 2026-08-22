@@ -29,6 +29,7 @@ from fetch_all_warehouses import (
     apply_default_customs_status,
     load_existing,
     append_daily_history,
+    now_kst,
 )
 
 
@@ -72,7 +73,7 @@ def fetch_one_with_browser(playwright, cfg: dict) -> list:
             timeout=30000,
         )
 
-        today = datetime.now().strftime("%Y%m%d")
+        today = now_kst().strftime("%Y%m%d")
         # 통관구분을 "전체"로 설정. 재고기준일자(dt)는 사이트에 따라 readonly인 경우가 있는데,
         # 그럴 때는 이미 오늘 날짜로 기본 채워져 있으므로 건드리지 않고 넘어간다.
         page.select_option("select[name='pass_fg']", "*")
@@ -156,7 +157,7 @@ def main():
     merged_rows = kept_rows + all_new_rows
 
     output = {
-        "수집시각": datetime.now().isoformat(),
+        "수집시각": now_kst().isoformat(),
         "총건수": len(merged_rows),
         "데이터": merged_rows,
     }

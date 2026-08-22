@@ -32,6 +32,8 @@ import json
 import os
 from datetime import datetime
 
+from fetch_all_warehouses import now_kst
+
 OUTPUT_PATH = "data/warehouse_stock.json"
 
 # CSV 헤더 -> 내부 스키마 필드명 매핑
@@ -122,7 +124,7 @@ def main():
 
     merged_rows = kept_rows + all_new_rows
     output = {
-        "수집시각": datetime.now().isoformat(),
+        "수집시각": now_kst().isoformat(),
         "총건수": len(merged_rows),
         "데이터": merged_rows,
     }

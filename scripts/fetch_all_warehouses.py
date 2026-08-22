@@ -19,7 +19,20 @@
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+KST = timezone(timedelta(hours=9))
+
+
+def now_kst() -> datetime:
+    """
+    로컬 PC(한국시간), GitHub Actions(UTC), 이 스크립트를 돌리는 사람의 서버
+    (역시 UTC일 수 있음) 등 실행 환경마다 시스템 시간대가 달라서, datetime.now()를
+    그냥 쓰면 실행한 곳에 따라 수집시각이 몇 시간씩 어긋난다 (실제로 KST 23:11에
+    수집한 걸 UTC 기준 14:11로 잘못 기록한 사고가 있었음). 항상 한국시간(KST,
+    UTC+9, 서머타임 없음)으로 명시적으로 계산해서 이 문제를 원천 차단한다.
+    """
+    return datetime.now(KST)
 
 OUTPUT_PATH = "data/warehouse_stock.json"
 
@@ -337,7 +350,7 @@ def append_daily_history(all_rows: list) -> None:
     수만~십만 행이 되어 느려질 수 있어서, 요약값만 남기는 방식으로 설계.
     같은 날짜에 여러 번 실행되면 그날 기록을 덮어써서 중복 누적을 막는다.
     """
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_kst().strftime("%Y-%m-%d")
 
     if os.path.exists(HISTORY_PATH):
         with open(HISTORY_PATH, encoding="utf-8") as f:
