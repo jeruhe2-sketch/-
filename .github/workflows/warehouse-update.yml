@@ -28,12 +28,16 @@ jobs:
             echo "=== GitHub Actions 러너의 공인 IP ==="
             curl -s https://api.ipify.org
             echo ""
-            echo "=== 대청냉장 메인 페이지 응답 (헤더+본문 일부) ==="
-            curl -v --max-time 15 "http://211.239.173.91:8080/dchdst/" 2>&1 | head -60
+            echo "=== [쿠키유지] 대청냉장 login.do GET (로그인폼 원본) ==="
+            curl -v --max-time 15 -c /tmp/cookies.txt -b /tmp/cookies.txt -L \
+              "http://211.239.173.91:8080/dchdst/" 2>&1
             echo ""
-            echo "=== 대청냉장 login.do 직접 POST 응답 ==="
-            curl -v --max-time 15 -X POST "http://211.239.173.91:8080/dchdst/login.do" \
-              -d "id=test&pw=test&wms_cd=1B6&co_stel=031-761-3002" 2>&1 | head -60
+            echo "=== [같은 쿠키로] login.do POST 응답 ==="
+            curl -v --max-time 15 -c /tmp/cookies.txt -b /tmp/cookies.txt \
+              -X POST "http://211.239.173.91:8080/dchdst/login.do" \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              --data-urlencode "id=test" --data-urlencode "pw=test" \
+              --data-urlencode "wms_cd=1B6" --data-urlencode "co_stel=031-761-3002" 2>&1
           } > debug/network_check.log 2>&1 || true
 
       - name: 창고 데이터 수집 스크립트 실행
