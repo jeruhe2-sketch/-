@@ -130,9 +130,21 @@ def login(session: requests.Session, cfg: dict) -> None:
         "wms_cd": cfg["wms_cd"],
         "co_stel": cfg["co_stel"],
     }
+    # Referer는 "로그인 폼이 실제로 렌더링된 그 URL"이어야 한다 (루트 경로가 아님).
+    # 브라우저 devtools로 캡처한 실제 요청 기준으로 맞춤.
     resp = session.post(
         cfg["login_url"], data=payload, timeout=30,
-        headers={"Referer": f"{base}/"},
+        headers={
+            "Referer": cfg["login_url"],
+            "Origin": base,
+            "Cache-Control": "max-age=0",
+            "Upgrade-Insecure-Requests": "1",
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.7"
+            ),
+        },
     )
     resp.raise_for_status()
 
