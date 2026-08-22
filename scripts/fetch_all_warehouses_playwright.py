@@ -85,8 +85,31 @@ def fetch_one_with_browser(playwright, cfg: dict) -> list:
         with page.expect_navigation(wait_until="networkidle", timeout=30000):
             page.click("button[type='submit']:has-text('조회')")
 
+        # DataTables가 화면에 25건씩만 페이지네이션해서 보여주는데(사이트 기본값
+        # pageLength: 25), 지금까지 이 25건만 긁어오고 있었다 - 실제 전체 건수보다
+        # 훨씬 적게 수집되는 버그였음. DataTables JS API로 페이지 길이를 "전체"로
+        # 바꿔서 모든 행이 DOM에 나타나게 한 뒤 읽는다.
+        page.evaluate(
+            """
+            () => {
+                const $ = window.jQuery;
+                if ($ && $.fn && $.fn.dataTable) {
+                    const table = $('.dataTables-example').DataTable();
+                    table.page.len(-1).draw();
+                }
+            }
+            """
+        )
+        page.wait_for_timeout(800)
+
         html = page.content()
         rows = parse_stock_table(html, cfg["창고명"])
+        if len(rows) == 25:
+            print(
+                f"  -> 경고: 정확히 25건 수집됨. DataTables 페이지네이션이 여전히 "
+                "걸려있을 가능성이 있으니 실제 사이트 총건수와 비교해보세요.",
+                file=sys.stderr,
+            )
         if not rows:
             debug_path = f"debug_{cfg['창고명']}_{cfg['계정용도']}.html"
             with open(debug_path, "w", encoding="utf-8") as f:
