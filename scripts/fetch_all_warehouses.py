@@ -68,7 +68,7 @@ WAREHOUSE_CONFIGS = [
         "scmdept": "00",
         "id_env": "NWILL_SINWOO_UNCLEARED_ID",
         "pw_env": "NWILL_SINWOO_UNCLEARED_PW",
-        "계정용도": "미통관",
+        "계정용도": "미통관(계육)",  # 실제로는 계육(닭) 관련 미통관 계정으로 확인됨
     },
     {
         "창고명": "한라냉장",
@@ -95,8 +95,79 @@ WAREHOUSE_CONFIGS = [
         "pw_env": "NWILL_HALLA_UNCLEARED_PW",
         "계정용도": "미통관",
     },
-    # 대청/신우 "통관" 계정은 기존에 수동으로 수집하던 계정 정보가 아직 없어서 보류.
-    # 계정 정보 주어지면 위와 동일한 형태로 추가.
+    {
+        "창고명": "대청냉장",
+        "base_url": "http://211.239.173.91:8080/dchdst",
+        "login_url": "http://211.239.173.91:8080/dchdst/login.do",
+        "wms_cd": "1B6",
+        "co_stel": "031-761-3002",
+        "scustcd": "23120",
+        "scmdept": "00",
+        "id_env": "NWILL_DAECHEONG_CLEARED_ID",
+        "pw_env": "NWILL_DAECHEONG_CLEARED_PW",
+        "계정용도": "통관",
+    },
+    {
+        "창고명": "신우냉장",
+        "base_url": "http://nwill.net:8080/swdst",
+        "login_url": "http://nwill.net:8080/swdst/login.do?nav_num=00",
+        "wms_cd": "104",
+        "co_stel": "031-764-8107",
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_SINWOO_LIVESTOCK_CLEARED_ID",
+        "pw_env": "NWILL_SINWOO_LIVESTOCK_CLEARED_PW",
+        "계정용도": "통관(축산물)",
+    },
+    {
+        "창고명": "신우냉장",
+        "base_url": "http://nwill.net:8080/swdst",
+        "login_url": "http://nwill.net:8080/swdst/login.do?nav_num=00",
+        "wms_cd": "104",
+        "co_stel": "031-764-8107",
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_SINWOO_POULTRY_CLEARED_ID",
+        "pw_env": "NWILL_SINWOO_POULTRY_CLEARED_PW",
+        "계정용도": "통관(계육)",
+    },
+    {
+        "창고명": "삼진1냉장",
+        "base_url": "http://nwill.net:8080/sjn1dst",
+        "login_url": "http://nwill.net:8080/sjn1dst/login.do",
+        "wms_cd": "",  # playwright 방식은 사이트가 자동으로 채워주는 hidden 값을 그대로 씀 (불필요)
+        "co_stel": "",
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_SAMJIN1_ID",
+        "pw_env": "NWILL_SAMJIN1_PW",
+        "계정용도": "전체",  # 통관/미통관 구분 계정 없이 단일 계정
+    },
+    {
+        "창고명": "삼진2냉장",
+        "base_url": "http://nwill.net:8080/sjn2dst",
+        "login_url": "http://nwill.net:8080/sjn2dst/login.do",
+        "wms_cd": "",
+        "co_stel": "",
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_SAMJIN2_ID",
+        "pw_env": "NWILL_SAMJIN2_PW",
+        "계정용도": "전체",
+    },
+    {
+        "창고명": "오로라씨에스",
+        "base_url": "http://211.239.173.90:8080/aurdst",
+        "login_url": "http://211.239.173.90:8080/aurdst/login.do",
+        "wms_cd": "",
+        "co_stel": "",
+        "scustcd": "",
+        "scmdept": "00",
+        "id_env": "NWILL_AURORA_ID",
+        "pw_env": "NWILL_AURORA_PW",
+        "계정용도": "전체",
+    },
+    # 강동냉장: 점검중이라 보류
 ]
 
 
