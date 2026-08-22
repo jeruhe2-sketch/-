@@ -23,6 +23,45 @@ import re
 OUTPUT_PATH = "data/warehouse_stock.json"
 
 # ------------------------------------------------------------------
+# 알려진 공급사/브랜드 목록. 창고 시스템의 "브랜드" 테이블 컬럼이 일부 항목에서
+# 내부 관리코드(날짜형 숫자, 예: "2022021602110001")를 담고 있어서 신뢰할 수
+# 없다는 게 확인됐다. 그래서 품목명 텍스트에서 이 목록에 있는 이름을 직접
+# 찾는 방식을 우선으로 쓰고, 못 찾으면 브랜드 컬럼값(단, 숫자코드처럼 보이면
+# 버림)으로 폴백한다.
+# 새 공급사가 추가되면 이 목록에 넣어주면 된다.
+# ------------------------------------------------------------------
+KNOWN_SUPPLIERS = [
+    "ACC", "AGROSUPER", "SEARA", "PATEL", "ALEJANDRO", "SMITHFIELD",
+    "AVINYO", "SEABOARD", "RIVASAM", "OLYMEL", "THOMAS", "MAFRIGES",
+    "INCARLOPSA", "RODRIGUEZ", "TEYS", "ASSA", "NBP", "FRIBIN",
+    "COSTABRAVA", "IOWA", "VJG7", "VJG", "MARCHER", "HKSCAN", "GATINE",
+    "ECT", "DEWAELE", "AFFCO", "DARLING DOWNS", "FAENADORA SUPER",
+    "KAMOURASKA", "EXC", "NATIONAL", "LORIENTE", "GREENIA", "LORFOOD",
+    "PERDIGAO", "SADIA", "DUMECO", "LAR", "QAF",
+]
+# 길이가 짧아서 오탐 위험이 큰 것들은 단어경계 정규식으로만 매칭 (A/S 등)
+_SUPPLIER_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(s) for s in sorted(KNOWN_SUPPLIERS, key=len, reverse=True)) + r")\b"
+)
+
+
+def _looks_like_code(text: str) -> bool:
+    """'2022021602110001' 같은 날짜형 내부관리코드처럼 보이면 True."""
+    digits = sum(ch.isdigit() for ch in text)
+    return len(text) >= 8 and digits >= len(text) * 0.8
+
+
+def extract_supplier(품목명: str, raw_brand: str) -> str:
+    """품목명에서 알려진 공급사명을 우선 찾고, 없으면 브랜드 컬럼값(코드성 문자열 제외)으로 폴백."""
+    match = _SUPPLIER_PATTERN.search(품목명 or "")
+    if match:
+        return match.group(1)
+    raw_brand = (raw_brand or "").strip()
+    if raw_brand and not _looks_like_code(raw_brand):
+        return raw_brand
+    return "기타/미상"
+
+# ------------------------------------------------------------------
 # 창고별 접속 설정
 # 계정마다 로그인 시 통관/미통관 여부가 자동으로 라벨링되는 게 아니라,
 # 응답 테이블의 '통관구분' 컬럼 실제값을 그대로 신뢰하도록 설계했다.
@@ -166,13 +205,8 @@ def parse_stock_table(html: str, 창고명: str) -> list:
 
         record["창고명"] = 창고명
         record["품목명"] = record.pop("수탁품", "")
-        brand = record.pop("브랜드", "").strip()
-        if not brand:
-            # 일부 창고(한라 등)는 브랜드 컬럼이 비어있고 품목명 텍스트 안에만 있음.
-            # 지금은 ACC만 우선 대응 (다른 브랜드는 필요해지면 목록 추가).
-            if re.search(r"\bACC\b", record["품목명"]):
-                brand = "ACC"
-        record["공급사"] = brand or "기타/미상"
+        raw_brand = record.pop("브랜드", "")
+        record["공급사"] = extract_supplier(record["품목명"], raw_brand)
         record["저장위치"] = record.pop("저장구역", "")
         record["중량_kg"] = record.pop("중량", "")
         # 유통기한 컬럼명이 창고마다 다름 (유통기한 / 소비기한)
