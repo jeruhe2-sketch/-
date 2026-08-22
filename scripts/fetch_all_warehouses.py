@@ -332,10 +332,20 @@ def parse_stock_table(html: str, 창고명: str) -> list:
 
 
 def apply_default_customs_status(rows: list, cfg: dict) -> None:
-    """통관구분 값이 비어있는 행에 한해 계정 기본값 적용."""
+    """
+    통관구분 값이 비어있는 행에 한해 계정 기본값 적용.
+
+    cfg["계정용도"]는 "통관(축산물)", "미통관(계육)", "전체" 처럼 참고용 라벨이라
+    괄호 설명을 그대로 쓰면 대시보드가 인식 못하는 이상한 값이 들어간다.
+    "통관"/"미통관"만 실제 기본값으로 쓰고, 그 외("전체" 등)는 빈 값 그대로 둔다.
+    """
+    label = cfg["계정용도"]
+    base_label = re.sub(r"\(.*\)", "", label).strip()
+    default_status = base_label if base_label in ("통관", "미통관") else None
+
     for r in rows:
         if not r.get("통관상태"):
-            r["통관상태"] = cfg["계정용도"]
+            r["통관상태"] = default_status
 
 
 def fetch_one(cfg: dict) -> list:
