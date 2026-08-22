@@ -1,6 +1,7 @@
 === GitHub Actions 러너의 공인 IP ===
-13.89.124.27
-=== 대청냉장 메인 페이지 응답 (헤더+본문 일부) ===
+172.171.7.193
+=== [쿠키유지] 대청냉장 login.do GET (로그인폼 원본) ===
+* WARNING: failed to open cookie file "/tmp/cookies.txt"
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 211.239.173.91:8080...
@@ -11,16 +12,867 @@
 > Accept: */*
 > 
 < HTTP/1.1 302 
-< Set-Cookie: JSESSIONID=F65A6D8224641C5325466DA8A1F69E02; Path=/dchdst; HttpOnly
+* Added cookie JSESSIONID="0253870FD28C4791C03611CDC973ACDF" for domain 211.239.173.91, path /dchdst, expire 0
+< Set-Cookie: JSESSIONID=0253870FD28C4791C03611CDC973ACDF; Path=/dchdst; HttpOnly
 < Location: login.do
 < Content-Type: text/html;charset=UTF-8
 < Content-Length: 0
-< Date: Sat, 22 Aug 2026 10:55:57 GMT
+< Date: Sat, 22 Aug 2026 10:57:50 GMT
 < 
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
 * Connection #0 to host 211.239.173.91 left intact
+* Issue another request to this URL: 'http://211.239.173.91:8080/dchdst/login.do'
+* Found bundle for host: 0x558096256a60 [serially]
+* Can not multiplex, even if we wanted to
+* Re-using existing connection with host 211.239.173.91
+> GET /dchdst/login.do HTTP/1.1
+> Host: 211.239.173.91:8080
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Cookie: JSESSIONID=0253870FD28C4791C03611CDC973ACDF
+> 
+< HTTP/1.1 200 
+< Cache-Control: no-store
+< Content-Type: text/html;charset=UTF-8
+< Content-Language: ko-KR
+< Transfer-Encoding: chunked
+< Date: Sat, 22 Aug 2026 10:57:50 GMT
+< 
+{ [1251 bytes data]
+100  1251    0  1251    0     0   2297      0 --:--:-- --:--:-- --:--:--  2297
 
-=== 대청냉장 login.do 직접 POST 응답 ===
+
+
+
+
+
+
+
+
+<!-- 공통포맷 -->
+
+
+
+
+
+
+
+
+<!-- ì¸ì ë§ì§ë§ ì ê·¼ìê° -->
+
+
+
+
+<!-- IEìì í¸íì±ë³´ê¸°ì ì¶ê°ë ê²½ì°, ìµì ë²ì ì¼ë¡ ìëìíë¨ì ë°ë¼ ê¹¨ì§íì ë°©ì§: ì£ì§ë¡ ê°ì ë§ì¶¤ -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+ 
+
+
+
+	
+<!DOCTYPE html>
+<html>
+
+<head>
+	
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title> | 통합물류정보</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="font-awesome/css/font-awesome.css" rel="stylesheet">
+
+    <link href="css/animate.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/plugins/jasny/jasny-bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Sweet Alert -->
+    <link href="css/plugins/sweetalert/sweetalert.css" rel="stylesheet">
+    
+    <link rel="shortcut icon" type="image/x-icon" href="resources/favicon.ico" />
+    
+    <!-- -------------------------------------------아래 삽입 -->
+</head>
+
+<body>
+
+	<!-- 로고 -->	
+	
+	    
+	        
+	            <tr class="gradeX">				      
+				    <!-- 세션등록 : 로고및 창고  -->			            
+	    			
+
+
+
+
+
+
+	
+
+<!-- 세션등록 -->
+
+<!-- --------------------------------------------------------------------------------로그인시(selectLogin) 적용되는 항목 : 로그인시마다 적용됨으로 한번만 설정 -->
+
+ 
+
+
+
+
+<!-- 매입처고객정보 사용유무: '1' 사용, 그외 미사용 -->
+
+<!-- 출고권한 Y,N-->
+
+<!-- 로그인테이블정보 -->
+
+
+<!-- 슈퍼콜(배송조인)-->
+
+
+
+
+
+
+
+
+
+
+<!-- 세금계산서 발행처 -->
+
+
+<!-- 관리자권한 Y,N  -->
+
+
+<!-- --------------------------------------------------------------------------------사업장정보(selectLogo) 적용되는 항목 : 최초한번만 적용됨으로 있을시,없을시 별도설정 -->
+
+	
+	
+		
+		
+		
+		
+		
+				
+		
+		
+		
+									
+
+
+
+<!-- 세션접속관련 -->
+
+
+
+
+			
+<!-- 세션에 저장된 모든 값의 변수명와 값을 아래와 같이 확인   -->
+
+
+		        </tr>
+		    
+		
+			
+	
+
+	<!-- 세션정보 -->	
+	
+	    
+			
+				<!-- 로그인 정보가 없습니다. -->
+			
+		  
+	
+	<div id="wrapper">
+	        
+	    <!-- nav(왼쪽사이드) -->
+	    
+
+
+
+
+
+
+  
+
+  
+
+<!-- 빌드넘버 -->
+  
+
+<!-- 메인 메뉴셋 -->
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+	<!-- 비활성화 -->
+    
+    <!-- 활성화메뉴 체크 -->
+    
+
+
+<!-- 서브 메뉴셋 --> 
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+    
+    
+
+
+
+<!-- param.nav_num가 4자리가 넘는 경우 강제에러발생 Cross Site Scripting 방지 -->
+
+
+<!-- 메인메뉴(왼쪽사이드) -->
+<nav class="navbar-default navbar-static-side" role="navigation">
+    <div class="sidebar-collapse">
+        <ul class="nav metismenu" id="side-menu">
+            <li class="nav-header">  
+            
+	            <span class="block m-t-xs"> 
+	                <strong class="font-bold">빌드정보: </strong><strong class="font-bold">24.12.19.19.308</strong><br>      
+	            </span> 	
+	            <span class="block m-t-xs"> 
+	                <strong class="font-bold">고객정보: </strong><strong class="font-bold">.1B6</strong><br>	            
+	            </span> 		                        
+	            
+	            
+	                
+	                    <span class="text-muted text-xs block"><p>로그인정보 없음</p>	</span> 
+	                
+	                								
+	            
+                                              
+                <div class="dropdown profile-element">
+                    <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                    	<span class="divider">&nbsp;</span>		
+                        <span class="clear"> 
+                        	<span class="text-muted text-xs block text-danger"> 시스템정보<b class="caret"></b> </span> 
+                        </span> 
+                    </a>
+                    <ul class="dropdown-menu animated fadeInRight m-t-xs">
+                        <li><strong class="font-bold text-center text-danger">[ 빌드정보 ]</strong></li>
+		                <li class="divider"></li>
+                        <li><strong class="font-bold">24.12.19.19.308</strong></li>
+                        
+		                <li class="divider"></li>
+                        <li><strong class="font-bold text-center text-danger">[ 시스템접속정보 ]</strong></li>
+		                <li class="divider"></li>                        
+                        
+			            
+			                
+			                    <span class="text-muted text-xs block"><p>로그인정보 없음</p>	</span> 
+			                
+			                								
+			            
+                        
+                    </ul>
+                </div>
+                <div class="logo-element">
+                    NW
+                </div>
+            </li>            
+            
+            
+		    
+		        
+		            <h5 class="text-center text-danger">[ DST : 정보없음 ]</h5>
+		        
+		        								
+		    	
+            
+            
+            
+            
+            
+        </ul>
+
+    </div>
+</nav>
+
+
+	
+	    <div id="page-wrapper" class="gray-bg">
+	        <div class="row border-bottom">
+	        	
+	        	<!-- nav(탑) -->
+	            
+
+
+	        
+<!-- https 사용유무 -->
+<script type="text/javascript">
+    var r_ip  = "172.171.7.193";
+    var ssl = "null";	
+    var r_domain = window.location.href;	
+    var protocol = window.location.protocol ;	
+    
+    /* 
+    alert("r_ip: " + r_ip);
+    alert("ssl: " + ssl);
+ 	alert(protocol); 
+ 	*/
+
+    if (r_ip.indexOf("10.1.1.") > -1 ){	 
+    	//주의 : protocal 로 분기처리 안할시 무한루브발생 (서버다운될수 있음)
+    	if (protocol == "http:") {
+    		r_domain = r_domain.replace("http://", "https://");	
+   		    r_domain = r_domain.replace(":80", "");	
+   		    r_domain = r_domain.replace(":443", "");	
+   		    location.href = r_domain;	
+    	}
+	  
+    }else {
+    	if ( protocol == "https:" ){	
+            r_domain = r_domain.replace("https://", "http://");	
+            r_domain = r_domain.replace(":80", "");	
+            r_domain = r_domain.replace(":443", "");	
+            location.href = r_domain;	
+    	}
+    }
+    
+</script>
+
+
+<nav class="navbar navbar-static-top white-bg" role="navigation" style="margin-bottom: 0">
+    <div class="navbar-header">
+        <a class="navbar-minimalize minimalize-styl-2 btn btn-primary " href="#"><i class="fa fa-bars"></i> </a>
+        <form role="search" class="navbar-form-custom" method="post" action="#">
+            <div class="form-group">
+                <input type="text" placeholder="메뉴" class="form-control" name="top-search" id="top-search">
+            </div>
+        </form>
+    </div>
+    
+    <div class="tooltip-demo">		
+    <ul class="nav navbar-top-links navbar-right">
+            
+        
+            
+                <li><a href="login.do"><i class="fa fa-sign-in"></i>Log in</a></li>
+            
+            
+        	  
+    </ul>
+        
+    </div> 
+</nav>
+	            
+	        </div>
+	        
+	        <!-- 컨텐츠 메뉴가이드 -->
+		    <div class="row wrapper border-bottom white-bg page-heading" id="ibox1">
+		        <div class="col-lg-10">
+		            <h2>물류정보서비스</h2>
+		            <ol class="breadcrumb">
+		                <li>
+		                    <a href="rtv_main.do">Home</a>
+		                </li>
+		                <li class="active">
+		                    <strong>로그인</strong>
+		                </li>
+		            </ol>
+		        </div>
+		        
+		        <!-- spinner -->
+				<div class="ibox-content">	
+				    <div class="sk-spinner sk-spinner-wandering-cubes">
+				        <div class="sk-cube1"></div>
+				        <div class="sk-cube2"></div>
+				    </div>	
+				</div>
+		    </div> 
+		    
+	        <!-- 컨텐츠 -->
+		    <div class="text-center loginscreen   animated fadeInDown">	
+				<h3 class="logo-name">
+                    
+                        
+                        	<div class="form-group">	    
+                        		<!-- 107 CI 이미지 적용 -->
+	                       			
+	                       	</div>
+                        	<div class="form-group">
+                        		<!-- 107 공용로고사용 안함 -->                        		
+                        		DST	                       		
+	                       	</div>                        	 
+                        
+                        								
+                    
+				</h3>	
+		    </div>
+		    <div class="middle-box text-center loginscreen   animated fadeInDown">
+		        <div>		                            	       
+		            <h3>물류정보서비스</h3>
+					
+						<p>로그인정보를 입력하세요.</p>
+					
+		            <p>대청냉장주식회사 / 
+	                    
+	                        
+	                        	DST  
+	                        
+	                        								
+	                    	
+                    </p>
+	
+					
+					    
+					    
+					    
+					    
+					    
+					        <!-- ----------------------------------------------------------------------------------------------------------------------------------------------------공용 -->    
+		    		        <form class="m-t" role="form" id="form" method=post action="login.do">		                
+			                    
+			                         
+			                        	<!-- 로그인 -->
+						                <div id="did" class="form-group">
+						                    <input type="text" class="form-control" placeholder="아이디(MAX 10)" id="id" name="id" maxlength="10" value="" autocomplete="off">
+						                </div>
+						                <div id="dpw" class="form-group">
+						                    <input type="password" class="form-control" placeholder="패스워드(MAX 8)" id="pw" name="pw" maxlength="8" value="" autocomplete="off">
+						                </div>
+		
+			                        	<button type="submit" class="btn btn-primary block full-width m-b">로그인</button>  
+						                <div class="form-group">    										
+						                    <a href="logreg.do"><i class="address-card"></i> <button type="button" class="btn btn-outline btn-link">신규가입하기</button> </a>
+						                    <!-- 
+						                    <i class="address-card"></i> <span class="nav-label"> | </span>
+						                    <a href="logfnd.do"><i class="address-card"></i> <button type="button" class="btn btn-outline btn-link">아이디/비밀번호 찾기</button> </a> 
+						                    -->
+						                </div>
+			                        
+			                        								
+			                       
+						                
+						        <input type="hidden" name="wms_cd" value="1B6">       
+						        <input type="hidden" name="co_stel" value="031-761-3002">                       
+				            </form>    
+					    								
+					   
+		            
+		        </div>
+		    </div>	 
+		    
+		    
+			<div class="text-center loginscreen   animated fadeInDown">
+		        
+		            	   
+						
+						<div>
+							<!-- 로그인 완료후(신규등록 완료시) 공용 알림 메시지 -->
+			            	<label class="text-success">		            	
+				            	
+								    
+								    					        
+								    
+																
+							</label>
+						</div>
+		             
+		            	<!-- 로그인전 메시지   -->     
+		            	<div> 
+					    	<label class="text-danger">(※주의:유통기한 표시는 현품과 상이 할수 있으므로 귀사에서 최종 확인 후 별도 관리 하시기 바라며, 경과시 귀사의 책임 임을 알려드립니다.)</label>	
+						</div>
+						
+						
+						
+						    					    
+						    
+						        <!-- ----------------------------------------------------------------------------------------------------------------------------------------------------공용 -->    
+				            	<div> 	         
+							    <label class="text-danger">
+									*당사의 인터넷 물류정보서비스 이용을 원하시는 고객은 먼저 거래신청서를 작성하시어 당사의 승인을 받아야 합니다.
+									(<a href = resources/TradingApp.doc download> <i class="fa fa-mail-forward"></i> 서식(거래신청서) 다운로드 </a>)
+								</label>
+								</div>	
+						    								
+						   
+					
+					      
+		            	<div> 	      
+						<label class="text-danger">
+							*출고의뢰시 아래 출고요청서를 작성하시어 당사의 승인을 받아야 합니다.
+							(<a href = resources/FactoryReq.xls download> <i class="fa fa-mail-forward"></i> 서식(출고요청서) 다운로드 </a>)<br>
+						</label>
+						</div>
+						
+		            
+		            								
+		        	
+			</div>
+		    
+					
+	        <!-- 푸터 -->
+	        
+
+
+<!-- 푸터 -->
+
+<div class="footer">
+    <!-- <div>
+        <label class="text-danger">(※주의: 유통기한 표시는 현품과 상이 할수 있으므로 귀사에서 최종 확인 후 별도 관리 하시기 바라며, 경과시 귀사의 책임 임을 알려드립니다.)</label>
+    </div> -->
+    <div>
+        <strong>Copyright</strong> &copy;  Address : 경기도 광주시 초월읍 산수로 370 전화번호 : 031-761-3002 팩스 : 031-762-3002  대표자 : 유영숙 COPYRIGHT(C) 2015 DST. ALL RIGHTS RESERVED. 
+    </div>
+</div>	        
+	        
+	        
+
+	
+	    </div>
+	</div>
+	
+	<!-- Mainly scripts -->
+	<script src="js/jquery-3.1.1.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/plugins/metisMenu/jquery.metisMenu.js"></script>
+	<script src="js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+	
+	<!-- Custom and plugin javascript -->
+	<script src="js/inspinia.js"></script>
+	<script src="js/plugins/pace/pace.min.js"></script>
+    <script src="js/plugins/jquery-ui/jquery-ui.min.js"></script>
+	
+	<!-- Sweet alert -->
+    <script src="js/plugins/sweetalert/sweetalert.min.js"></script>    
+	
+    <!-- Jquery Validate -->
+    <script src="js/plugins/validate/jquery.validate.min.js"></script>    
+
+	<!-- https 사용유무 -->
+	<script type="text/javascript">
+		var r_ip  = "172.171.7.193";
+		var ssl = "null";	
+		var r_domain = window.location.href;	
+		var protocol = window.location.protocol ;	
+
+		/* 아이피가 10.1.1. 대역인경우 https로 강제적용(0:0:0: 개발단테스트시)*/
+		/* if (r_ip.indexOf("0:0:0:") > -1 ){ */	 
+		if (r_ip.indexOf("10.1.1.") > -1 ){
+			//주의 : protocol 로 분기처리 안할시 무한루브발생 (서버다운될수 있음)
+			if (protocol == "http:") {
+				r_domain = r_domain.replace("http://", "https://");	
+				r_domain = r_domain.replace(":80", "");	
+				r_domain = r_domain.replace(":443", "");	
+				location.href = r_domain;	
+			}
+		  
+		}else {
+			if ( protocol == "https:" ){	
+				r_domain = r_domain.replace("https://", "http://");	
+				r_domain = r_domain.replace(":80", "");	
+				r_domain = r_domain.replace(":443", "");	
+				location.href = r_domain;	
+			}
+		}
+		
+	</script>
+    
+    <script>
+		 var doubleSubmitFlag = false;
+		
+         $(document).ready(function(){
+        	 
+        	 var agent = navigator.userAgent.toLowerCase();
+
+        	 if ( (navigator.appName == 'Netscape' && navigator.userAgent.search('Trident') != -1) || (agent.indexOf("msie") != -1) ) {
+        	            swal({
+        	                title: "브라우저 호환성 경고",
+        	                text: "'Internet Explorer는 호환되지 않는 브라우저 입니다. \r\nEdge나 Chrome 브라우저를 사용하세요.'"
+        	            });        	 
+        	 }
+
+        	 /* -------------------------------------------서브밋 검증 */
+             $('#form').submit(function (event){     
+
+            	 //초기화(주의 : div 와 input의 id를 같게 한 경우, 진행이 안됨 )
+ 			     $("#did").removeClass("has-error");
+			     $("#dpw").removeClass("has-error");
+			    
+            	 if($("#id").val().length < 1){	 
+    			        swal({
+    			            title: "",
+    			            text: '<span style="color:#DF0101">아이디는 필수 항목입니다.<span>',
+    			            type: "warning",
+    			            html: true
+    			        });
+        			    $("#did").addClass("has-error");
+                      	return false;
+               	 }    
+            	 if($("#pw").val().length < 1){	 
+    			        swal({
+    			            title: "",
+    			            text: '<span style="color:#DF0101">비밀번호는 필수 항목입니다.<span>',
+    			            type: "warning",
+    			            html: true
+    			        });
+        			    $("#dpw").addClass("has-error");
+                      	return false;
+               	 }  
+            	 
+            	 //----------------------------------------------------------특수문자 제외처리  
+            	 /* if($("#pw").val().indexOf("\'") >= 0 ){	     
+ 			        swal({
+ 			            title: "",
+ 			            text: '<span style="color:#DF0101"> \' 특수문자는 비밀번호로 사용할 수 없습니다.<span>',
+ 			            type: "warning",
+ 			            html: true
+ 			        });
+     			    $("#dpw").addClass("has-error");
+                   	return false;
+            	 }              	 
+            	 if($("#pw").val().indexOf("\"") >= 0 ){	     
+ 			        swal({
+ 			            title: "",
+ 			            text: '<span style="color:#DF0101"> \" 특수문자는 비밀번호로 사용할 수 없습니다.<span>',
+ 			            type: "warning",
+ 			            html: true
+ 			        });
+     			    $("#dpw").addClass("has-error");
+                   	return false;
+            	 }  
+            	 if($("#pw").val().indexOf("=") >= 0 ){	     
+ 			        swal({
+ 			            title: "",
+ 			            text: '<span style="color:#DF0101"> \= 특수문자는 비밀번호로 사용할 수 없습니다.<span>',
+ 			            type: "warning",
+ 			            html: true
+ 			        });
+     			    $("#dpw").addClass("has-error");
+ 100 23248    0 23248    0     0  22302      0 --:--:--  0:00:01 --:--:-- 44259
+* Connection #0 to host 211.239.173.91 left intact
+                  	return false;
+            	 }  
+            	 if($("#pw").val().indexOf("\:") >= 0 ){	     
+ 			        swal({
+ 			            title: "",
+ 			            text: '<span style="color:#DF0101"> \: 특수문자는 비밀번호로 사용할 수 없습니다.<span>',
+ 			            type: "warning",
+ 			            html: true
+ 			        });
+     			    $("#dpw").addClass("has-error");
+                   	return false;
+            	 }  
+            	 if($("#pw").val().indexOf("\{") >= 0 ){	     
+ 			        swal({
+ 			            title: "",
+ 			            text: '<span style="color:#DF0101"> \{ 특수문자는 비밀번호로 사용할 수 없습니다.<span>',
+ 			            type: "warning",
+ 			            html: true
+ 			        });
+     			    $("#dpw").addClass("has-error");
+                   	return false;
+            	 }   
+            	 if($("#pw").val().indexOf("\}") >= 0 ){	     
+ 			        swal({
+ 			            title: "",
+ 			            text: '<span style="color:#DF0101"> \} 특수문자는 비밀번호로 사용할 수 없습니다.<span>',
+ 			            type: "warning",
+ 			            html: true
+ 			        });
+     			    $("#dpw").addClass("has-error");
+                   	return false;
+            	 } */  
+      			
+      			//  -------------------------------------------------------------------중복실행 방지
+     		    if(doubleSubmitFlag){    		 
+     		        swal({
+     		            title: "",
+     		            text: '<span style="color:#DF0101">이미실행중입니다.잠시만 기다리세요<span>',
+     		            type: "warning",
+     		            html: true
+     		        });
+     		        return false;
+     		    }else {
+    		    	//spinners
+    		        $('#ibox1').children('.ibox-content').toggleClass('sk-loading');
+     		        doubleSubmitFlag = true;
+     		       
+     		        formName.submit();
+     		    }
+     			
+
+             }); 
+             
+        	 
+
+         	 //------------------------------------------- 새로 고침 방지
+         	 function noEvent() { 
+         		 
+         	        if ($("#uploadState").val() == "1") {
+         	            if (event.keyCode == 116) {
+         	                alert("새로고침을 할 수 없습니다.");
+         	                event.keyCode = 2;
+         	                return false;
+         	            } else if (event.ctrlKey
+         	                    && (event.keyCode == 78 || event.keyCode == 82)) {
+         	                return false;
+         	            }
+         	        }
+         	  }
+         	  document.onkeydown = noEvent;
+         	  
+        });
+         
+    </script>
+
+</body>
+
+</html>
+
+=== [같은 쿠키로] login.do POST 응답 ===
 Note: Unnecessary use of -X or --request, POST is already inferred.
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
@@ -30,20 +882,20 @@ Note: Unnecessary use of -X or --request, POST is already inferred.
 > Host: 211.239.173.91:8080
 > User-Agent: curl/8.5.0
 > Accept: */*
-> Content-Length: 47
+> Cookie: JSESSIONID=0253870FD28C4791C03611CDC973ACDF
 > Content-Type: application/x-www-form-urlencoded
+> Content-Length: 47
 > 
 } [47 bytes data]
 < HTTP/1.1 404 
 < Cache-Control: no-store
-< Set-Cookie: JSESSIONID=A6755AFFAC7CAFAD965A56EB5102FB0E; Path=/dchdst; HttpOnly
 < Content-Type: text/html;charset=EUC-KR
 < Content-Language: ko-KR
 < Content-Length: 1121
-< Date: Sat, 22 Aug 2026 10:55:57 GMT
+< Date: Sat, 22 Aug 2026 10:57:52 GMT
 < 
 { [1121 bytes data]
-100  1168  100  1121  100    47   3333    139 --:--:-- --:--:-- --:--:--  3476
+100  1168  100  1121  100    47   3193    133 --:--:-- --:--:-- --:--:--  3327
 * Connection #0 to host 211.239.173.91 left intact
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
