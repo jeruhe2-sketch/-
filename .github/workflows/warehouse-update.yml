@@ -1,0 +1,73 @@
+name: 창고 재고 데이터 자동 갱신 (Playwright)
+
+on:
+  schedule:
+    # 매일 한국시간 오전 7시 30분 (UTC 기준 전날 22시 30분) - 수입검역 갱신(7시)과 겹치지 않게
+    - cron: '30 22 * * *'
+  workflow_dispatch: {}  # "Run workflow" 버튼으로 수동 실행도 가능
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 필요 패키지 설치
+        run: pip install playwright beautifulsoup4
+
+      - name: Chromium 브라우저 엔진 설치
+        run: python -m playwright install --with-deps chromium
+
+      - name: 창고 데이터 수집 스크립트 실행 (Playwright)
+        id: run_script
+        continue-on-error: true
+        env:
+          NWILL_DAECHEONG_UNCLEARED_ID: ${{ secrets.NWILL_DAECHEONG_UNCLEARED_ID }}
+          NWILL_DAECHEONG_UNCLEARED_PW: ${{ secrets.NWILL_DAECHEONG_UNCLEARED_PW }}
+          NWILL_SINWOO_UNCLEARED_ID: ${{ secrets.NWILL_SINWOO_UNCLEARED_ID }}
+          NWILL_SINWOO_UNCLEARED_PW: ${{ secrets.NWILL_SINWOO_UNCLEARED_PW }}
+          NWILL_HALLA_CLEARED_ID: ${{ secrets.NWILL_HALLA_CLEARED_ID }}
+          NWILL_HALLA_CLEARED_PW: ${{ secrets.NWILL_HALLA_CLEARED_PW }}
+          NWILL_HALLA_UNCLEARED_ID: ${{ secrets.NWILL_HALLA_UNCLEARED_ID }}
+          NWILL_HALLA_UNCLEARED_PW: ${{ secrets.NWILL_HALLA_UNCLEARED_PW }}
+          NWILL_DAECHEONG_CLEARED_ID: ${{ secrets.NWILL_DAECHEONG_CLEARED_ID }}
+          NWILL_DAECHEONG_CLEARED_PW: ${{ secrets.NWILL_DAECHEONG_CLEARED_PW }}
+          NWILL_SINWOO_LIVESTOCK_CLEARED_ID: ${{ secrets.NWILL_SINWOO_LIVESTOCK_CLEARED_ID }}
+          NWILL_SINWOO_LIVESTOCK_CLEARED_PW: ${{ secrets.NWILL_SINWOO_LIVESTOCK_CLEARED_PW }}
+          NWILL_SINWOO_POULTRY_CLEARED_ID: ${{ secrets.NWILL_SINWOO_POULTRY_CLEARED_ID }}
+          NWILL_SINWOO_POULTRY_CLEARED_PW: ${{ secrets.NWILL_SINWOO_POULTRY_CLEARED_PW }}
+          NWILL_SAMJIN1_ID: ${{ secrets.NWILL_SAMJIN1_ID }}
+          NWILL_SAMJIN1_PW: ${{ secrets.NWILL_SAMJIN1_PW }}
+          NWILL_SAMJIN2_ID: ${{ secrets.NWILL_SAMJIN2_ID }}
+          NWILL_SAMJIN2_PW: ${{ secrets.NWILL_SAMJIN2_PW }}
+          NWILL_AURORA_ID: ${{ secrets.NWILL_AURORA_ID }}
+          NWILL_AURORA_PW: ${{ secrets.NWILL_AURORA_PW }}
+        run: |
+          mkdir -p debug
+          python scripts/fetch_all_warehouses_playwright.py > debug/last_run.log 2>&1
+          echo "exit_code=$?" >> debug/last_run.log
+          cat debug/last_run.log
+
+      - name: 디버그 로그 및 변경사항 커밋 및 푸시
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/warehouse_stock.json
+          git add debug/last_run.log
+          git add debug_*.html 2>/dev/null || true
+          git diff --cached --quiet && echo "변경 없음, 커밋 스킵" || git commit -m "chore: 창고 데이터 자동 갱신 $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: 스크립트 실패 시 워크플로우도 실패 처리
+        if: steps.run_script.outcome == 'failure'
+        run: exit 1

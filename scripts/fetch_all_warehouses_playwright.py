@@ -24,7 +24,6 @@ from playwright.sync_api import sync_playwright
 
 from fetch_all_warehouses import (
     WAREHOUSE_CONFIGS,
-    TABLE_COLUMNS,
     OUTPUT_PATH,
     parse_stock_table,
     apply_default_customs_status,
