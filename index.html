@@ -682,6 +682,31 @@ function Dashboard({ db, history, onRefresh, refreshing }) {
     });
   }, [accRows, accSearch, accGrade]);
   const accNames = useMemo(() => [...new Set(accRows.map((r) => r.\uC815\uADDC\uD654\uBA85))].sort(), [accRows]);
+  const warehouses = useMemo(() => [...new Set(ROWS.map((r) => r.\uCC3D\uACE0\uBA85))].sort(), []);
+  const animalTypes = useMemo(() => [...new Set(ROWS.map((r) => r.\uCD95\uC885))].sort(), []);
+  const suppliers = useMemo(() => {
+    const totals = {};
+    ROWS.forEach((r) => {
+      totals[r.\uACF5\uAE09\uC0AC] = (totals[r.\uACF5\uAE09\uC0AC] || 0) + r.\uC7AC\uACE0\uC218\uB7C9;
+    });
+    return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
+  }, []);
+  const toggle = (list, setList, v) => setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+  const filtered = useMemo(() => {
+    return ROWS.filter((r) => {
+      if (warehouseFilter.length && !warehouseFilter.includes(r.\uCC3D\uACE0\uBA85)) return false;
+      if (supplierFilter.length && !supplierFilter.includes(r.\uACF5\uAE09\uC0AC)) return false;
+      if (animalFilter.length && !animalFilter.includes(r.\uCD95\uC885)) return false;
+      if (customsFilter !== "\uC804\uCCB4" && r.\uD1B5\uAD00\uC0C1\uD0DC !== customsFilter) return false;
+      if (expiryFilter === "9\uAC1C\uC6D4\uC774\uB0B4" && !isWithinNineMonths(r.\uC720\uD1B5\uAE30\uD55C)) return false;
+      if (search.trim()) {
+        const q = search.trim().toUpperCase();
+        const hay = `${r.\uD488\uBAA9\uBA85} ${r.LOT\uBC88\uD638} ${r.BL\uBC88\uD638}`.toUpperCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [warehouseFilter, supplierFilter, animalFilter, customsFilter, expiryFilter, search]);
   const chartGrouped = useMemo(() => {
     const totals = {};
     filtered.forEach((r) => {
@@ -719,31 +744,6 @@ function Dashboard({ db, history, onRefresh, refreshing }) {
     }));
     return { dates, series };
   }, [history, trendDim, trendValue]);
-  const warehouses = useMemo(() => [...new Set(ROWS.map((r) => r.\uCC3D\uACE0\uBA85))].sort(), []);
-  const animalTypes = useMemo(() => [...new Set(ROWS.map((r) => r.\uCD95\uC885))].sort(), []);
-  const suppliers = useMemo(() => {
-    const totals = {};
-    ROWS.forEach((r) => {
-      totals[r.\uACF5\uAE09\uC0AC] = (totals[r.\uACF5\uAE09\uC0AC] || 0) + r.\uC7AC\uACE0\uC218\uB7C9;
-    });
-    return Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
-  }, []);
-  const toggle = (list, setList, v) => setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const filtered = useMemo(() => {
-    return ROWS.filter((r) => {
-      if (warehouseFilter.length && !warehouseFilter.includes(r.\uCC3D\uACE0\uBA85)) return false;
-      if (supplierFilter.length && !supplierFilter.includes(r.\uACF5\uAE09\uC0AC)) return false;
-      if (animalFilter.length && !animalFilter.includes(r.\uCD95\uC885)) return false;
-      if (customsFilter !== "\uC804\uCCB4" && r.\uD1B5\uAD00\uC0C1\uD0DC !== customsFilter) return false;
-      if (expiryFilter === "9\uAC1C\uC6D4\uC774\uB0B4" && !isWithinNineMonths(r.\uC720\uD1B5\uAE30\uD55C)) return false;
-      if (search.trim()) {
-        const q = search.trim().toUpperCase();
-        const hay = `${r.\uD488\uBAA9\uBA85} ${r.LOT\uBC88\uD638} ${r.BL\uBC88\uD638}`.toUpperCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [warehouseFilter, supplierFilter, animalFilter, customsFilter, expiryFilter, search]);
   const kpi = useMemo(() => {
     const totalQty = filtered.reduce((s, r) => s + r.\uC7AC\uACE0\uC218\uB7C9, 0);
     const totalWeight = filtered.reduce((s, r) => s + r.\uC911\uB7C9_kg, 0);
