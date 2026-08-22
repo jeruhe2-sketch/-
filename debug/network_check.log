@@ -1,0 +1,82 @@
+=== GitHub Actions 러너의 공인 IP ===
+13.89.124.27
+=== 대청냉장 메인 페이지 응답 (헤더+본문 일부) ===
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 211.239.173.91:8080...
+* Connected to 211.239.173.91 (211.239.173.91) port 8080
+> GET /dchdst/ HTTP/1.1
+> Host: 211.239.173.91:8080
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 302 
+< Set-Cookie: JSESSIONID=F65A6D8224641C5325466DA8A1F69E02; Path=/dchdst; HttpOnly
+< Location: login.do
+< Content-Type: text/html;charset=UTF-8
+< Content-Length: 0
+< Date: Sat, 22 Aug 2026 10:55:57 GMT
+< 
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* Connection #0 to host 211.239.173.91 left intact
+
+=== 대청냉장 login.do 직접 POST 응답 ===
+Note: Unnecessary use of -X or --request, POST is already inferred.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 211.239.173.91:8080...
+* Connected to 211.239.173.91 (211.239.173.91) port 8080
+> POST /dchdst/login.do HTTP/1.1
+> Host: 211.239.173.91:8080
+> User-Agent: curl/8.5.0
+> Accept: */*
+> Content-Length: 47
+> Content-Type: application/x-www-form-urlencoded
+> 
+} [47 bytes data]
+< HTTP/1.1 404 
+< Cache-Control: no-store
+< Set-Cookie: JSESSIONID=A6755AFFAC7CAFAD965A56EB5102FB0E; Path=/dchdst; HttpOnly
+< Content-Type: text/html;charset=EUC-KR
+< Content-Language: ko-KR
+< Content-Length: 1121
+< Date: Sat, 22 Aug 2026 10:55:57 GMT
+< 
+{ [1121 bytes data]
+100  1168  100  1121  100    47   3333    139 --:--:-- --:--:-- --:--:--  3476
+* Connection #0 to host 211.239.173.91 left intact
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=EUC-KR">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>404 Error</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="font-awesome/css/font-awesome.css" rel="stylesheet">
+
+    <link href="css/animate.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+
+</head>
+<body class="gray-bg">
+
+
+    <div class="middle-box text-center animated fadeInDown">
+        <h1>404</h1>
+        <h3 class="font-bold">Page Not Found</h3>
+
+        <div class="error-desc">
+            Sorry, but the page you are looking for has note been found. Try checking the URL for error, then hit the refresh button on your browser or try found something else in our app.
+           
+        </div>
+    </div>
+
+    <!-- Mainly scripts -->
+    <script src="js/jquery-3.1.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+
+</body>
+</html>
