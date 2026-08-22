@@ -86,7 +86,17 @@ def fetch_one_with_browser(playwright, cfg: dict) -> list:
             page.click("button[type='submit']:has-text('조회')")
 
         html = page.content()
-        return parse_stock_table(html, cfg["창고명"])
+        rows = parse_stock_table(html, cfg["창고명"])
+        if not rows:
+            debug_path = f"debug_{cfg['창고명']}_{cfg['계정용도']}.html"
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            print(
+                f"  -> 0건 파싱됨. 원본 페이지를 {debug_path} 에 저장했으니 "
+                "이 파일을 보내주시면 표 구조를 확인할 수 있습니다.",
+                file=sys.stderr,
+            )
+        return rows
     finally:
         browser.close()
 
